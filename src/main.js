@@ -8,7 +8,6 @@ const AdmZip = require("adm-zip");
 const { getMinecraftServerStatus } = require("mc-server-util");
 const { Launch } = require("minecraft-java-core");
 const accounts = require("./account-store");
-const modpacks = require("./modpack-manager");
 
 const ROOT = path.join(__dirname, "..");
 const CONTENT_DIR = path.join(ROOT, "content");
