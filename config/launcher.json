@@ -1,0 +1,15 @@
+{
+  "server": {
+    "host": "PLAY.YOURSERVER.NL",
+    "port": 25565
+  },
+  "social": {
+    "discord": "https://discord.com/",
+    "instagram": "https://instagram.com/",
+    "whatsapp": "https://wa.me/"
+  },
+  "memory": {
+    "min": "2G",
+    "max": "6G"
+  }
+}
