@@ -9,6 +9,7 @@ let language = "nl";
 let selectedEra = "steamy-times";
 let selectedAccountId = null;
 let accountsList = [];
+let affiliateState = { campaigns: [], index: 0, timer: null, currentUrl: null };
 
 function setLanguage(next) {
   language = next;
@@ -46,6 +47,7 @@ async function startup() {
   await loadEra();
   await loadServerStatus();
   await loadSocial();
+  await loadAffiliates();
   showMain();
 }
 
@@ -80,6 +82,59 @@ async function loadServerStatus() {
   $("serverState").textContent = !status.configured ? t.notConfigured : status.online ? t.online : t.offline;
   $("serverPlayers").textContent = status.online ? `${status.players.online}/${status.players.max} ${t.players(status.players.online)}` : "Minecraft server";
   $("serverDot").style.background = status.online ? "#63bd68" : "#a34d38";
+}
+
+async function loadAffiliates() {
+  try {
+    const data = await window.launcherAPI.getAffiliateBanners();
+    if (!data?.enabled || !Array.isArray(data.campaigns) || !data.campaigns.length) return;
+
+    affiliateState.campaigns = data.campaigns;
+    affiliateState.index = 0;
+    renderAffiliate();
+
+    const rotationMs = Math.max(5000, Number(data.rotationSeconds || 15) * 1000);
+    affiliateState.timer = setInterval(() => {
+      affiliateState.index = (affiliateState.index + 1) % affiliateState.campaigns.length;
+      renderAffiliate();
+    }, rotationMs);
+  } catch (error) {
+    console.warn("Affiliate banners unavailable:", error);
+  }
+}
+
+function renderAffiliate() {
+  const campaign = affiliateState.campaigns[affiliateState.index];
+  if (!campaign) return;
+
+  affiliateState.currentUrl = campaign.url;
+  $("affiliateLabel").textContent = campaign.label || "PARTNER";
+  $("affiliateTitle").textContent = campaign.title;
+  $("affiliateDescription").textContent = campaign.description || "";
+  $("affiliateButton").textContent = campaign.button || "Bekijk aanbieding →";
+
+  const image = $("affiliateImage");
+  const fallback = $("affiliateFallback");
+  if (campaign.image) {
+    image.src = campaign.image;
+    image.alt = campaign.alt || campaign.title;
+    image.classList.remove("hidden");
+    fallback.classList.add("hidden");
+    image.onerror = () => {
+      image.classList.add("hidden");
+      fallback.classList.remove("hidden");
+    };
+  } else {
+    image.removeAttribute("src");
+    image.classList.add("hidden");
+    fallback.classList.remove("hidden");
+  }
+
+  $("affiliateBanner").classList.remove("hidden");
+}
+
+async function openAffiliate() {
+  if (affiliateState.currentUrl) await window.launcherAPI.openSocial(affiliateState.currentUrl);
 }
 
 async function loadSocial() {
@@ -154,6 +209,12 @@ window.launcherAPI.onUpdate(data => {\n  if (["dev","current","error","downloade
 });
 
 $("updateInstall").addEventListener("click", () => window.launcherAPI.installUpdate());
+$("affiliateButton").addEventListener("click", openAffiliate);
+$("affiliateBanner").addEventListener("click", event => {
+  if (event.target.closest("button")) return;
+  openAffiliate();
+});
+$("affiliateClose").addEventListener("click", () => $("affiliateBanner").classList.add("hidden"));
 
 setLanguage("nl");
 startup();
