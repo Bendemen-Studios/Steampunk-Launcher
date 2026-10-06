@@ -92,6 +92,7 @@ async function loadEra() {
     const version = manifest?.latestVersion || manifest?.version;
     $("modpackVersion").textContent = version && version !== "0.0.0" ? version : "Nog niet geïnstalleerd";
     $("minecraftVersion").textContent = manifest?.minecraftVersion || "Wordt later ingesteld";
+    $("launchStatus").textContent = manifest?.loader ? manifest.loader + " " + (manifest.loaderBuild || "latest") + " • Minecraft " + (manifest.minecraftVersion || "?") : "";
     $("launchStatus").textContent = manifest?.loader
       ? `${manifest.loader} ${manifest.loaderBuild || "latest"} • Minecraft ${manifest.minecraftVersion || "?"}`
       : "";
@@ -228,6 +229,9 @@ window.launcherAPI.onUpdate(data => {
     $("updateInstall").classList.remove("hidden");
   }
   if (data.event === "error") progress(100, i18n[language].done);
+  if (data.event === "modpack-start") $("launchStatus").textContent = "Modpack voorbereiden: " + data.version;
+  if (data.event === "modpack-progress") $("launchStatus").textContent = "Modpack downloaden: " + data.percent + "%";
+  if (data.event === "modpack-ready") $("launchStatus").textContent = "Modpack klaar: " + data.version;
   if (data.event === "modpack-start") $("launchStatus").textContent = `${i18n[language].modpackDownloading} ${data.version}`;
   if (data.event === "modpack-progress") $("launchStatus").textContent = `${i18n[language].modpackDownloading} ${data.percent}%`;
   if (data.event === "modpack-ready") $("launchStatus").textContent = `${i18n[language].modpackReady}: ${data.version}`;
