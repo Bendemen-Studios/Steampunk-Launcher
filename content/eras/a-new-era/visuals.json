@@ -4,5 +4,13 @@
   "title": "A New Era",
   "background": "a-new-era-background.svg",
   "logo": "a-new-era-logo.svg",
-  "accent": "#77736c"
+  "accent": "#c18a51",
+  "palette": {
+    "background": "#17100a",
+    "surface": "#24170f",
+    "surface2": "#332015",
+    "text": "#f1dfc8",
+    "muted": "#b99773",
+    "border": "#795332"
+  }
 }
