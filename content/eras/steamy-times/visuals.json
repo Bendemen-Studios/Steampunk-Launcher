@@ -1,6 +1,8 @@
 {
   "id": "steamy-times",
+  "status": "playable",
+  "title": "Steamy Times",
   "background": "steamy-times-background.webp",
   "logo": "steamy-times-logo.svg",
-  "accent": "#c98a4b"
+  "accent": "#8f8170"
 }
