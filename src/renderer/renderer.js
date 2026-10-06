@@ -5,7 +5,8 @@ const i18n = {
     updateTitle:"Launcher bijwerken", checking:"Controleren op updates...", loading:"Launcher voorbereiden...",
     done:"Klaar", current:"Je gebruikt de nieuwste versie.", available:"Nieuwe launcher gevonden",
     downloaded:"Update klaar om te installeren", heroTitle:"Kies jouw Era",
-    heroText:"Elke Era heeft zijn eigen avontuur, modpack en configuratie.", launch:"▶ Minecraft starten",
+    heroText:"Elke Era heeft zijn eigen avontuur, modpack en configuratie.", launch:"▶ Spelen",
+    comingSoon:"COMING SOON", comingSoonText:"A New Era is still being forged.",
     noAccount:"Geen account geselecteerd", server:"Controleren...", online:"Online", offline:"Offline",
     notConfigured:"Server nog niet ingesteld", players:n=>"spelers online", login:"Inloggen...",
     modpackChecking:"Modpack controleren...", modpackDownloading:"Modpack downloaden...",
@@ -18,7 +19,8 @@ const i18n = {
     updateTitle:"Updating launcher", checking:"Checking for updates...", loading:"Preparing launcher...",
     done:"Ready", current:"You are using the latest version.", available:"New launcher version found",
     downloaded:"Update ready to install", heroTitle:"Choose your Era",
-    heroText:"Each Era has its own adventure, modpack and configuration.", launch:"▶ Launch Minecraft",
+    heroText:"Each Era has its own adventure, modpack and configuration.", launch:"▶ Play",
+    comingSoon:"COMING SOON", comingSoonText:"A New Era is still being forged.",
     noAccount:"No account selected", server:"Checking...", online:"Online", offline:"Offline",
     notConfigured:"Server not configured yet", players:n=>"players online", login:"Signing in...",
     modpackChecking:"Checking modpack...", modpackDownloading:"Downloading modpack...",
@@ -32,6 +34,7 @@ const i18n = {
 let language = "nl";
 let selectedEra = "steamy-times";
 let selectedAccountId = null;
+let selectedEraPlayable = true;
 let accountsList = [];
 let affiliateState = { campaigns: [], index: 0, timer: null, currentUrl: null };
 let updaterResolved = false;
@@ -44,7 +47,7 @@ function setLanguage(next) {
   $("updateTitle").textContent = t.updateTitle;
   $("heroTitle").textContent = t.heroTitle;
   $("heroText").textContent = t.heroText;
-  $("launchButton").textContent = t.launch;
+  $("launchButton").textContent = selectedEraPlayable ? t.launch : t.comingSoon;
   if (!selectedAccountId) $("profileName").textContent = t.noAccount;
 }
 
@@ -161,10 +164,17 @@ async function applyEraVisuals(era, animate = true) {
     await new Promise(r => setTimeout(r, 420));
   }
   root.style.setProperty("--era-bg", nextBackground);
-  root.style.setProperty("--era-accent", visuals.accent || "#c18a51");
+  root.style.setProperty("--era-accent", visuals.accent || "#8f8170");
+  selectedEraPlayable = visuals.status !== "coming-soon";
+  document.body.dataset.era = era;
+  document.body.dataset.eraStatus = visuals.status || "playable";
   $("eraLogo").src = nextLogo;
   $("eraLogo").alt = visuals.id || era;
   $("eraTransition").classList.add("hidden");
+  $("comingSoonMessage").classList.toggle("hidden", selectedEraPlayable);
+  $("launchButton").disabled = !selectedEraPlayable;
+  $("launchButton").classList.toggle("coming-soon-button", !selectedEraPlayable);
+  $("launchButton").textContent = selectedEraPlayable ? i18n[language].launch : i18n[language].comingSoon;
 }
 
 async function loadEra() {
@@ -172,6 +182,11 @@ async function loadEra() {
   await applyEraVisuals(selectedEra, false);
   try {
     const manifest = await window.launcherAPI.getEraManifest(selectedEra);
+    selectedEraPlayable = manifest?.status !== "coming-soon";
+    $("comingSoonMessage").classList.toggle("hidden", selectedEraPlayable);
+    $("launchButton").disabled = !selectedEraPlayable;
+    $("launchButton").classList.toggle("coming-soon-button", !selectedEraPlayable);
+    $("launchButton").textContent = selectedEraPlayable ? i18n[language].launch : i18n[language].comingSoon;
     const version = manifest?.latestVersion || manifest?.version;
     $("modpackVersion").textContent = version && version !== "0.0.0" ? version : "Nog niet geïnstalleerd";
     $("minecraftVersion").textContent = manifest?.minecraftVersion || "Wordt later ingesteld";
@@ -270,7 +285,11 @@ async function loadSocial() {
   }
 }
 
-$("language").addEventListener("change", e => setLanguage(e.target.value));
+$("language").addEventListener("change", e => {
+  setLanguage(e.target.value);
+  $("comingSoonMessage").querySelector("strong").textContent = i18n[language].comingSoon;
+  $("comingSoonMessage").querySelector("span").textContent = i18n[language].comingSoonText;
+});
 $("eraChooser").addEventListener("change", async () => {
   selectedEra = $("eraChooser").value;
   await applyEraVisuals(selectedEra, true);
@@ -313,6 +332,7 @@ $("removeAccount").addEventListener("click", async () => {
 });
 
 $("launchButton").addEventListener("click", async () => {
+  if (!selectedEraPlayable) return;
   if (!selectedAccountId) {
     $("launchStatus").textContent = language === "nl" ? "Log eerst in met een Microsoft-account." : "Sign in with a Microsoft account first.";
     return;
