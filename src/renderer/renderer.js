@@ -111,6 +111,9 @@ async function loadTools() {
     $("ramMax").value = settings.memory?.max || "6G";
     $("fpsLimit").value = settings.fps || 120;
     $("resolution").value = settings.resolution || "";
+    $("javaVersion").value = settings.javaVersion || "";
+    $("javaPath").value = settings.javaPath || "";
+    $("javaArgs").value = settings.javaArgs || "";
     $("fullscreen").checked = !!settings.fullscreen;
     $("vsync").checked = settings.vsync !== false;
 
@@ -264,6 +267,9 @@ $("saveSettings").addEventListener("click", async () => {
     memory: { min: $("ramMin").value.trim() || "2G", max: $("ramMax").value.trim() || "6G" },
     fps: Math.max(30, Number($("fpsLimit").value) || 120),
     resolution: $("resolution").value.trim(),
+    javaVersion: $("javaVersion").value.trim(),
+    javaPath: $("javaPath").value.trim(),
+    javaArgs: $("javaArgs").value.trim(),
     fullscreen: $("fullscreen").checked,
     vsync: $("vsync").checked
   };
