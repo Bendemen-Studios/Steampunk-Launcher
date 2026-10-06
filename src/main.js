@@ -112,6 +112,22 @@ app.whenReady().then(() => {
   ipcMain.handle("open-social", async (_, url) => shell.openExternal(url));
   ipcMain.handle("get-social-links", () => readConfig().social || {});
 
+  ipcMain.handle("get-affiliate-banners", () => {
+    const file = path.join(ROOT, "config", "affiliates.json");
+    try {
+      const data = JSON.parse(fs.readFileSync(file, "utf8"));
+      return {
+        enabled: data.enabled !== false,
+        rotationSeconds: Math.max(5, Number(data.rotationSeconds) || 15),
+        campaigns: Array.isArray(data.campaigns) ? data.campaigns.filter(c =>
+          c && c.enabled !== false && typeof c.title === "string" && typeof c.url === "string"
+        ) : []
+      };
+    } catch {
+      return { enabled: false, rotationSeconds: 15, campaigns: [] };
+    }
+  });
+
   ipcMain.handle("get-era-manifest", async (_, era) => {
     if (!["steamy-times", "a-new-era"].includes(era)) throw new Error("Invalid Era.");
     const file = path.join(ERAS_DIR, era, "modpack.json");
