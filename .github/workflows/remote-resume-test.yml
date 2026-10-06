@@ -1,0 +1,27 @@
+name: Remote Modpack Resume Test
+
+on:
+  push:
+    branches: ["test/remote-modpack"]
+
+jobs:
+  remote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resumable download
+        run: |
+          set -euo pipefail
+          url="https://files.steampunksmp.com/steampunk/steamy-times/v1.0/ucc.zip"
+          expected="1315767093"
+          rm -f ucc.zip
+          for attempt in 1 2 3 4 5 6 7 8; do
+            curl --http1.1 -fL --retry 3 --retry-delay 2 -C - "$url" -o ucc.zip || true
+            size="$(stat -c%s ucc.zip 2>/dev/null || echo 0)"
+            echo "Attempt $attempt: $size / $expected"
+            [ "$size" = "$expected" ] && break
+            sleep 2
+          done
+          test "$(stat -c%s ucc.zip)" = "$expected"
+          sha256sum ucc.zip
+          unzip -tq ucc.zip
+          echo "RESUMABLE DOWNLOAD + SHA-256 + ZIP TEST: OK"
