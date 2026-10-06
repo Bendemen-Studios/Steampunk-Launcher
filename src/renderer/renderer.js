@@ -31,11 +31,15 @@ function showMain() {
   $("mainScreen").classList.remove("hidden");
 }
 
+let updaterResolved = false;
+let updaterResolve;
+
+const updaterReadyPromise = new Promise(resolve => { updaterResolve = resolve; });
+
 async function startup() {
-  progress(20, i18n[language].checking);
-  await new Promise(r => setTimeout(r, 250));
-  progress(60, i18n[language].loading);
-  await new Promise(r => setTimeout(r, 250));
+  progress(8, i18n[language].checking);
+  await updaterReadyPromise;
+  if (!updaterResolved) return;
   progress(100, i18n[language].done);
   await new Promise(r => setTimeout(r, 350));
   await loadAccounts();
@@ -135,7 +139,7 @@ $("launchButton").addEventListener("click", async () => {
   }
 });
 
-window.launcherAPI.onUpdate(data => {
+window.launcherAPI.onUpdate(data => {\n  if (["dev","current","error","downloaded"].includes(data.event)) { updaterResolved = true; updaterResolve(); }
   if (data.event === "checking") progress(10, i18n[language].checking);
   if (data.event === "available") {
     progress(25, `${i18n[language].available}: v${data.version}`);
