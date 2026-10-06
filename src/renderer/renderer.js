@@ -9,7 +9,10 @@ const i18n = {
     noAccount:"Geen account geselecteerd", server:"Controleren...", online:"Online", offline:"Offline",
     notConfigured:"Server nog niet ingesteld", players:n=>"spelers online", login:"Inloggen...",
     modpackChecking:"Modpack controleren...", modpackDownloading:"Modpack downloaden...",
-    modpackInstalling:"Modpack installeren...", modpackReady:"Modpack klaar"
+    modpackInstalling:"Modpack installeren...", modpackReady:"Modpack klaar",
+    updateAvailable:"Update beschikbaar", upToDate:"Up-to-date", checkingModpack:"Modpack controleren...",
+    repairChecking:"Repair Center controleert...", repairReady:"Controle voltooid", repairDone:"Modpack hersteld",
+    retrying:"Download opnieuw proberen"
   },
   en: {
     updateTitle:"Updating launcher", checking:"Checking for updates...", loading:"Preparing launcher...",
@@ -19,7 +22,10 @@ const i18n = {
     noAccount:"No account selected", server:"Checking...", online:"Online", offline:"Offline",
     notConfigured:"Server not configured yet", players:n=>"players online", login:"Signing in...",
     modpackChecking:"Checking modpack...", modpackDownloading:"Downloading modpack...",
-    modpackInstalling:"Installing modpack...", modpackReady:"Modpack ready"
+    modpackInstalling:"Installing modpack...", modpackReady:"Modpack ready",
+    updateAvailable:"Update available", upToDate:"Up to date", checkingModpack:"Checking modpack...",
+    repairChecking:"Repair Center checking...", repairReady:"Check completed", repairDone:"Modpack repaired",
+    retrying:"Retrying download"
   }
 };
 
@@ -70,8 +76,14 @@ async function startup() {
 
 async function loadAccounts() {
   accountsList = await window.launcherAPI.listAccounts();
-  if (!accountsList.length) return;
-  selectedAccountId = accountsList[0].id;
+  if (!accountsList.length) {
+    selectedAccountId = null;
+    renderAccount();
+    return;
+  }
+  const remembered = await window.launcherAPI.getEraAccount(selectedEra);
+  selectedAccountId = accountsList.some(a => a.id === remembered) ? remembered : accountsList[0].id;
+  await window.launcherAPI.setEraAccount(selectedEra, selectedAccountId);
   renderAccount();
 }
 
@@ -79,11 +91,58 @@ function renderAccount() {
   const account = accountsList.find(a => a.id === selectedAccountId);
   if (!account) {
     $("profileName").textContent = i18n[language].noAccount;
-    $("profileAvatar").textContent = "?";
+    $("profileAvatar").removeAttribute("src");
+    $("profileAvatar").classList.add("avatar-fallback");
+    $("profileAvatar").alt = "";
     return;
   }
   $("profileName").textContent = account.name;
-  $("profileAvatar").textContent = account.name.charAt(0).toUpperCase();
+  $("profileAvatar").classList.remove("avatar-fallback");
+  $("profileAvatar").src = account.avatarUrl || account.skinUrl || "";
+  $("profileAvatar").alt = account.name + " Minecraft skin";
+  if (!account.avatarUrl && !account.skinUrl) {
+    $("profileAvatar").classList.add("avatar-fallback");
+    $("profileAvatar").alt = "";
+  }
+  $("profileAvatar").onerror = () => {
+    $("profileAvatar").removeAttribute("src");
+    $("profileAvatar").classList.add("avatar-fallback");
+  };
+}
+
+async function loadModpackUpdateInfo() {
+  try {
+    const info = await window.launcherAPI.getModpackUpdateInfo(selectedEra);
+    if (!info.latestVersion) {
+      $("updateInfo").textContent = "Deze Era heeft nog geen modpack.";
+      return info;
+    }
+    const status = info.updateAvailable
+      ? i18n[language].updateAvailable + ": " + info.latestVersion
+      : i18n[language].upToDate + ": " + info.latestVersion;
+    const files = info.fileCount ? ` • ${info.changedFiles} wijzigingen • ${info.addedFiles} nieuw • ${info.deletedFiles} verwijderd` : "";
+    $("updateInfo").textContent = status + " • " + info.downloadSizeLabel + files;
+    return info;
+  } catch (error) {
+    $("updateInfo").textContent = error.message || "Modpackstatus unavailable.";
+    return null;
+  }
+}
+
+async function loadRepairStatus() {
+  try {
+    const info = await window.launcherAPI.getRepairStatus(selectedEra);
+    $("repairInstalled").textContent = info.installedVersion || "Niet geïnstalleerd";
+    $("repairLatest").textContent = info.latestVersion || "—";
+    $("repairArchive").textContent = info.archiveReady ? (info.archiveValid ? "OK" : "SHA fout") : "Ontbreekt";
+    $("repairDisk").textContent = info.freeDiskLabel || "—";
+    $("repairChanges").textContent = `${info.changedFiles || 0} gewijzigd • ${info.addedFiles || 0} nieuw • ${info.deletedFiles || 0} verwijderd`;
+    $("repairBackups").textContent = info.backups?.length ? String(info.backups.length) : "Geen";
+    return info;
+  } catch (error) {
+    $("maintenanceStatus").textContent = error.message || "Repair status unavailable.";
+    return null;
+  }
 }
 
 async function applyEraVisuals(era, animate = true) {
@@ -120,6 +179,7 @@ async function loadEra() {
     $("launchStatus").textContent = manifest?.loader
       ? `${manifest.loader} ${manifest.loaderBuild || "latest"} • Minecraft ${manifest.minecraftVersion || "?"}`
       : "";
+    await Promise.all([loadModpackUpdateInfo(), loadRepairStatus()]);
   } catch (error) {
     $("modpackVersion").textContent = "Manifest niet bereikbaar";
     $("minecraftVersion").textContent = "—";
@@ -211,7 +271,13 @@ async function loadSocial() {
 }
 
 $("language").addEventListener("change", e => setLanguage(e.target.value));
-$("eraChooser").addEventListener("change", async () => { await applyEraVisuals($("eraChooser").value, true); await loadEra(); await loadTools(); });
+$("eraChooser").addEventListener("change", async () => {
+  selectedEra = $("eraChooser").value;
+  await applyEraVisuals(selectedEra, true);
+  await loadAccounts();
+  await loadEra();
+  await loadTools();
+});
 
 $("loginAccount").addEventListener("click", async () => {
   $("loginAccount").disabled = true;
@@ -220,6 +286,7 @@ $("loginAccount").addEventListener("click", async () => {
     const account = await window.launcherAPI.loginAccount();
     accountsList.push(account);
     selectedAccountId = account.id;
+    await window.launcherAPI.setEraAccount(selectedEra, selectedAccountId);
     renderAccount();
   } catch (error) {
     $("launchStatus").textContent = error.message || "Microsoft login failed.";
@@ -233,6 +300,7 @@ $("switchProfile").addEventListener("click", () => {
   if (!accountsList.length) return;
   const current = accountsList.findIndex(a => a.id === selectedAccountId);
   selectedAccountId = accountsList[(current + 1) % accountsList.length].id;
+  window.launcherAPI.setEraAccount(selectedEra, selectedAccountId);
   renderAccount();
 });
 
@@ -240,6 +308,7 @@ $("removeAccount").addEventListener("click", async () => {
   if (!selectedAccountId) return;
   accountsList = await window.launcherAPI.removeAccount(selectedAccountId);
   selectedAccountId = accountsList[0]?.id || null;
+  await window.launcherAPI.setEraAccount(selectedEra, selectedAccountId);
   renderAccount();
 });
 
@@ -251,6 +320,7 @@ $("launchButton").addEventListener("click", async () => {
   $("launchButton").disabled = true;
   $("launchStatus").textContent = i18n[language].modpackChecking;
   try {
+    await window.launcherAPI.setEraAccount(selectedEra, selectedAccountId);
     await window.launcherAPI.launchMinecraft({ era: selectedEra, accountId: selectedAccountId });
     $("launchStatus").textContent = i18n[language].modpackReady;
   } catch (error) {
@@ -276,6 +346,7 @@ window.launcherAPI.onUpdate(data => {
     $("updateInstall").classList.remove("hidden");
   }
   if (data.event === "error") progress(100, i18n[language].done);
+  if (data.event === "modpack-retry") $("launchStatus").textContent = i18n[language].retrying + " (" + data.attempt + "/" + data.attempts + ")";
   if (data.event === "modpack-start") $("launchStatus").textContent = "Modpack voorbereiden: " + data.version;
   if (data.event === "modpack-progress") $("launchStatus").textContent = "Modpack downloaden: " + data.percent + "%";
   if (data.event === "modpack-ready") $("launchStatus").textContent = "Modpack klaar: " + data.version;
@@ -284,6 +355,22 @@ window.launcherAPI.onUpdate(data => {
   if (data.event === "modpack-ready") $("launchStatus").textContent = `${i18n[language].modpackReady}: ${data.version}`;
 });
 
+
+$("checkModpack").addEventListener("click", async () => {
+  $("checkModpack").disabled = true;
+  $("updateInfo").textContent = i18n[language].checkingModpack;
+  try { await loadModpackUpdateInfo(); await loadRepairStatus(); }
+  finally { $("checkModpack").disabled = false; }
+});
+
+$("checkRepair").addEventListener("click", async () => {
+  $("checkRepair").disabled = true;
+  $("maintenanceStatus").textContent = i18n[language].repairChecking;
+  try {
+    await loadRepairStatus();
+    $("maintenanceStatus").textContent = i18n[language].repairReady;
+  } finally { $("checkRepair").disabled = false; }
+});
 
 $("saveSettings").addEventListener("click", async () => {
   const settings = {
@@ -308,6 +395,7 @@ $("repairEra").addEventListener("click", async () => {
     $("maintenanceStatus").textContent = result.ok ? `Modpack ${result.version} is hersteld.` : result.message;
     await loadEra();
     await loadTools();
+    await loadRepairStatus();
   } catch (error) {
     $("maintenanceStatus").textContent = error.message || "Repair failed.";
   } finally { $("repairEra").disabled = false; }
