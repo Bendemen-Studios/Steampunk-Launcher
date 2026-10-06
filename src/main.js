@@ -533,6 +533,9 @@ app.whenReady().then(() => {
     accounts.setEraAccount(payload.era, account.id);
 
     const manifest = await resolveEra(payload.era);
+    if (manifest.status === "coming-soon") {
+      throw new Error("Deze Era komt binnenkort beschikbaar.");
+    }
     if (!manifest.minecraftVersion) throw new Error("Deze Era heeft nog geen Minecraft-versie ingesteld.");
     if (manifest.loader && !manifest.loaderBuild) throw new Error("Deze Era heeft geen loader build ingesteld.");
 
