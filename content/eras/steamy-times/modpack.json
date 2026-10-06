@@ -1,7 +1,10 @@
 {
-  "id":"steamy-times",
-  "name":"Steamy Times",
-  "minecraftVersion":"",
-  "loader":"",
-  "version":"0.0.0"
+  "id": "steamy-times",
+  "name": "Steamy Times",
+  "minecraftVersion": "1.21.1",
+  "loader": "neoforge",
+  "loaderBuild": "21.1.250",
+  "version": "v1.0",
+  "latestVersion": "v1.0",
+  "remoteManifestUrl": "https://files.steampunksmp.com/steampunk/steamy-times/manifest.json"
 }
