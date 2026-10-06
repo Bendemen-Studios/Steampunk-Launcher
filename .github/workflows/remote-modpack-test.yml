@@ -1,0 +1,52 @@
+name: Remote Modpack Test
+
+on:
+  push:
+    branches: ["test/remote-modpack"]
+
+jobs:
+  remote-modpack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch remote manifest
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-delay 2 \
+            https://files.steampunksmp.com/steampunk/steamy-times/manifest.json \
+            -o manifest.json
+          cat manifest.json
+          python3 - <<'PY'
+          import json
+          m=json.load(open("manifest.json"))
+          assert m["id"] == "steamy-times"
+          assert m["latestVersion"] == "v1.0"
+          assert m["minecraftVersion"] == "1.21.1"
+          assert m["loader"] == "neoforge"
+          assert m["loaderBuild"] == "21.1.250"
+          u=m["versions"]["v1.0"]["url"]
+          assert u == "https://files.steampunksmp.com/steampunk/steamy-times/v1.0/ucc.zip"
+          print("Manifest validation: OK")
+          print("Archive URL:", u)
+          print("SHA-256 present:", bool(m["versions"]["v1.0"].get("sha256")))
+          PY
+
+      - name: Check archive headers
+        run: |
+          set -euo pipefail
+          curl -fsSI --retry 3 --retry-delay 2 \
+            https://files.steampunksmp.com/steampunk/steamy-times/v1.0/ucc.zip \
+            | tee headers.txt
+          grep -qi '^content-type: application/zip' headers.txt
+          grep -qi '^content-length: 1315767093' headers.txt
+          echo "Archive header validation: OK"
+
+      - name: Download and hash archive
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-delay 2 \
+            https://files.steampunksmp.com/steampunk/steamy-times/v1.0/ucc.zip \
+            -o ucc.zip
+          test "$(stat -c%s ucc.zip)" = "1315767093"
+          sha256sum ucc.zip
+          unzip -tq ucc.zip
+          echo "Archive download, size, SHA-256 and ZIP integrity: OK"
