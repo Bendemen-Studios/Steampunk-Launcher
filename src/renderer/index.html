@@ -36,16 +36,23 @@
         <div class="era-brand"><img id="eraLogo" src="" alt=""></div>
         <h2 id="heroTitle">Kies jouw Era</h2>
         <p id="heroText">Elke Era heeft zijn eigen avontuur, modpack en configuratie.</p>
-        <label for="eraChooser">Era</label>
-        <select id="eraChooser" class="era-select">
-          <option value="steamy-times">Steamy Times</option>
-          <option value="a-new-era">A New Era</option>
-        </select>
+        <div class="era-picker">
+          <label for="eraChooser">Era</label>
+          <select id="eraChooser" class="era-select">
+            <option value="steamy-times">Steamy Times</option>
+            <option value="a-new-era">A New Era</option>
+          </select>
+        </div>
+        <div id="comingSoonMessage" class="coming-soon-message hidden" aria-live="polite">
+          <div class="coming-soon-gear">⚙</div>
+          <strong>COMING SOON</strong>
+          <span>A New Era is still being forged.</span>
+        </div>
         <div class="era-info">
           <div><span class="info-label">Modpack</span><strong id="modpackVersion">Nog niet geïnstalleerd</strong></div>
           <div><span class="info-label">Minecraft</span><strong id="minecraftVersion">Wordt later ingesteld</strong></div>
         </div>
-        <button id="launchButton" class="launch-button">▶ Minecraft starten</button>
+        <button id="launchButton" class="launch-button">▶ Spelen</button>
         <p id="launchStatus" class="status-message"></p>
       </div>
       <div class="hero-art" aria-hidden="true">
