@@ -2,7 +2,15 @@
   "id": "steamy-times",
   "status": "playable",
   "title": "Steamy Times",
-  "background": "steamy-times-background.webp",
+  "background": "steamy-times-background.jpg",
   "logo": "steamy-times-logo.svg",
-  "accent": "#8f8170"
+  "accent": "#8f8170",
+  "palette": {
+    "background": "#080909",
+    "surface": "#101111",
+    "surface2": "#1a1c1c",
+    "text": "#d1cec6",
+    "muted": "#8c8982",
+    "border": "#555754"
+  }
 }
