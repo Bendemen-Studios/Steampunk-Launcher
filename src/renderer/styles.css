@@ -74,3 +74,16 @@ body{padding-bottom:96px}
 .affiliate-close{position:absolute;right:9px;top:8px;border:0;background:transparent;color:#927b65;font-size:1.25rem;cursor:pointer;line-height:1}
 .affiliate-close:hover{color:#f4ead8}
 @media(max-width:700px){.affiliate-banner{width:calc(100vw - 18px)}.affiliate-media{display:none}.affiliate-button{font-size:.78rem;padding:8px}.affiliate-copy strong{font-size:.9rem}}
+
+
+.launcher-tools{grid-template-columns:1.2fr 1fr 1fr;padding-top:0}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.settings-grid label{display:flex;flex-direction:column;gap:5px;color:#a89076;font-size:.78rem}
+.settings-grid input{background:#160e0a;color:#f4ead8;border:1px solid #65462d;border-radius:7px;padding:8px}
+.check{display:inline-flex;align-items:center;gap:7px;color:#bda78d;font-size:.85rem;margin:5px 10px 5px 0}
+.tool-button{border:1px solid #805c3b;background:#241710;color:#d9b98e;border-radius:8px;padding:9px 12px;cursor:pointer;margin-top:10px}
+.tool-button:hover{background:#342116}
+.tool-button:disabled{opacity:.55;cursor:wait}
+.tool-text{color:#9e8a75;font-size:.85rem;line-height:1.5}
+.tool-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:1000px){.launcher-tools{grid-template-columns:1fr}}
