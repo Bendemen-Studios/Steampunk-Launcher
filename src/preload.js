@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("launcherAPI", {
   getSocialLinks: () => ipcRenderer.invoke("get-social-links"),
   getAffiliateBanners: () => ipcRenderer.invoke("get-affiliate-banners"),
   getEraManifest: (era) => ipcRenderer.invoke("get-era-manifest", era),
+  getEraVisuals: (era) => ipcRenderer.invoke("get-era-visuals", era),
   getSettings: () => ipcRenderer.invoke("get-settings"),
   saveSettings: (settings) => ipcRenderer.invoke("save-settings", settings),
   getHardwareInfo: () => ipcRenderer.invoke("get-hardware-info"),
