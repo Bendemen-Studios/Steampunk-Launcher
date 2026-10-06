@@ -77,6 +77,37 @@
         </div>
       </article>
     </section>
+
+    <section class="cards launcher-tools">
+      <article class="panel">
+        <div class="panel-heading"><span>⚙</span><h3>Instellingen</h3></div>
+        <div class="settings-grid">
+          <label>RAM min<input id="ramMin" value="2G"></label>
+          <label>RAM max<input id="ramMax" value="6G"></label>
+          <label>FPS<input id="fpsLimit" type="number" min="30" max="1000" value="120"></label>
+          <label>Resolutie<input id="resolution" placeholder="Automatisch"></label>
+        </div>
+        <label class="check"><input id="fullscreen" type="checkbox"> Fullscreen</label>
+        <label class="check"><input id="vsync" type="checkbox" checked> VSync</label>
+        <button id="saveSettings" class="tool-button">Instellingen opslaan</button>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading"><span>🔧</span><h3>Onderhoud</h3></div>
+        <p class="tool-text">Controleer of de gekozen Era compleet is en herstel de modpackbestanden indien nodig.</p>
+        <div class="tool-actions">
+          <button id="repairEra" class="tool-button">Modpack herstellen</button>
+          <button id="cleanupEra" class="tool-button">Cache opruimen</button>
+        </div>
+        <p id="maintenanceStatus" class="status-message"></p>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading"><span>🖥</span><h3>Systeem</h3></div>
+        <div id="hardwareInfo" class="tool-text">Hardware wordt geladen...</div>
+        <div id="logInfo" class="tool-text"></div>
+      </article>
+    </section>
   </main>
   <section id="affiliateBanner" class="affiliate-banner hidden" aria-label="Affiliate aanbieding">
     <div class="affiliate-media">
