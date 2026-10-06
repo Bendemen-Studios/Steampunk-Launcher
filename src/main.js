@@ -392,6 +392,12 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("get-era-manifest", async (_, era) => resolveEra(era));
+  ipcMain.handle("get-era-visuals", (_, era) => {
+    if (!SUPPORTED_ERAS.includes(era)) throw new Error("Invalid Era.");
+    const file = path.join(ERAS_DIR, era, "visuals.json");
+    if (!fs.existsSync(file)) return null;
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  });
   ipcMain.handle("get-settings", () => readSettings());
   ipcMain.handle("save-settings", (_, settings) => writeSettings(settings));
   ipcMain.handle("get-hardware-info", () => getHardwareInfo());
