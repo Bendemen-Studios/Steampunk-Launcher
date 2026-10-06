@@ -119,3 +119,32 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradi
 .repair-grid span{display:block;color:#806b58;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
 .repair-grid strong{font-size:.82rem;color:#ead8c1}
 #updateInfo{min-height:44px}
+
+
+
+/* Coal-era presentation */
+:root{--coal-0:#080909;--coal-1:#111313;--coal-2:#1a1c1c;--coal-3:#292b2b;--coal-metal:#77736c;--coal-light:#d1cec6}
+body{background:var(--coal-0)}
+.topbar{border-bottom-color:rgba(119,115,108,.28);background:rgba(8,9,9,.72)}
+.topbar select,.era-select{background:#151717;color:var(--coal-light);border-color:#555754}
+.eyebrow,.hero label,.info-label{color:var(--coal-metal)}
+.badge{border-color:#686a67;color:#b9b6af}
+.hero p{color:#aaa8a2}
+.era-info>div,.panel{border-color:rgba(119,115,108,.4);background:rgba(16,17,17,.86)}
+.launch-button{border-color:#85817a;background:linear-gradient(#555650,#292b2b);color:#f0eee9}
+.launch-button:hover{filter:brightness(1.12)}
+.launch-button:disabled,.launch-button.coming-soon-button{background:linear-gradient(#343635,#202222);border-color:#4b4d4a;color:#858680;cursor:not-allowed;filter:none;transform:none;box-shadow:none}
+.era-picker{width:min(280px,100%);margin:4px 0 12px}
+.era-picker label{margin:0 0 6px;font-size:.7rem;text-transform:uppercase;letter-spacing:.14em}
+.era-select{width:100%;font-size:.9rem;padding:9px 12px}
+.coming-soon-message{position:relative;display:flex;align-items:center;gap:10px;width:min(620px,100%);margin:8px 0 16px;padding:13px 16px;border:1px solid rgba(119,115,108,.5);border-radius:12px;background:rgba(8,9,9,.72);overflow:hidden}
+.coming-soon-message::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(119,115,108,.1),transparent);transform:translateX(-100%);animation:coalSweep 3.2s ease-in-out infinite}
+.coming-soon-gear{font-size:1.35rem;color:#8c8982;animation:spin 7s linear infinite;position:relative}
+.coming-soon-message strong,.coming-soon-message span{position:relative}
+.coming-soon-message strong{font-size:.85rem;letter-spacing:.18em;color:#c6c3bb}
+.coming-soon-message span{font-size:.82rem;color:#858680}
+body[data-era-status="coming-soon"] .era-hero::before{background:linear-gradient(135deg,rgba(119,115,108,.08),transparent 55%)}
+body[data-era-status="coming-soon"] .hero-art{opacity:.38;filter:grayscale(1)}
+body[data-era="steamy-times"]::before{filter:grayscale(.35) saturate(.72) contrast(1.04)}
+body[data-era="a-new-era"]::before{filter:grayscale(.2) contrast(1.08)}
+@keyframes coalSweep{0%,25%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
