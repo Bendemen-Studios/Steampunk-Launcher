@@ -1,7 +1,10 @@
 {
-  "id":"a-new-era",
-  "name":"A New Era",
-  "minecraftVersion":"",
-  "loader":"",
-  "version":"0.0.0"
+  "id": "a-new-era",
+  "name": "A New Era",
+  "minecraftVersion": "",
+  "loader": "",
+  "loaderBuild": "",
+  "version": "0.0.0",
+  "latestVersion": "0.0.0",
+  "remoteManifestUrl": ""
 }
