@@ -154,17 +154,29 @@ async function applyEraVisuals(era, animate = true) {
   const root = document.documentElement;
   const base = "../../content/eras/" + era + "/";
   const nextBackground = "url(" + JSON.stringify(base + visuals.background) + ")";
+  const palette = visuals.palette || {};
+  const nextTheme = palette.background || visuals.accent || "#111313";
   const nextLogo = base + visuals.logo;
   if (animate) {
+    const overlay = $("eraTransition");
+    overlay.style.setProperty("--transition-bg", getComputedStyle(document.body).backgroundColor || "#080909");
+    overlay.style.backgroundColor = getComputedStyle(document.body).backgroundColor || "#080909";
     $("eraTransitionLogo").src = nextLogo;
-    $("eraTransition").classList.remove("hidden");
-    $("eraTransition").classList.remove("era-enter");
-    void $("eraTransition").offsetWidth;
-    $("eraTransition").classList.add("era-enter");
-    await new Promise(r => setTimeout(r, 420));
+    overlay.classList.remove("hidden");
+    overlay.classList.remove("era-enter");
+    void overlay.offsetWidth;
+    overlay.style.backgroundColor = nextTheme;
+    overlay.classList.add("era-enter");
+    await new Promise(r => setTimeout(r, 430));
   }
   root.style.setProperty("--era-bg", nextBackground);
   root.style.setProperty("--era-accent", visuals.accent || "#8f8170");
+  root.style.setProperty("--era-bg-color", palette.background || "#111313");
+  root.style.setProperty("--era-surface", palette.surface || "#101111");
+  root.style.setProperty("--era-surface-2", palette.surface2 || "#1a1c1c");
+  root.style.setProperty("--era-text", palette.text || "#d1cec6");
+  root.style.setProperty("--era-muted", palette.muted || "#8c8982");
+  root.style.setProperty("--era-border", palette.border || "#555754");
   selectedEraPlayable = visuals.status !== "coming-soon";
   document.body.dataset.era = era;
   document.body.dataset.eraStatus = visuals.status || "playable";
