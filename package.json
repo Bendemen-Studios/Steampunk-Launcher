@@ -107,8 +107,13 @@
         }
       ],
       "artifactName": "Steampunk-SMP-Launcher-${version}-Linux-${arch}.${ext}",
-      "category": "Game"
+      "category": "Game",
+      "maintainer": "Bendemen Studios <ben@justpetrov.com>"
     },
     "extraResources": []
+  },
+  "author": {
+    "name": "Bendemen Studios",
+    "email": "ben@justpetrov.com"
   }
 }
