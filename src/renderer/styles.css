@@ -111,3 +111,11 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradi
 .era-transition-logo-wrap img{width:100%;max-height:240px;object-fit:contain;filter:drop-shadow(0 16px 40px #000)}
 @keyframes eraCurtain{0%{opacity:1}55%{opacity:1}100%{opacity:0}}
 @keyframes eraLogoIn{0%{opacity:0;transform:scale(.86) translateY(15px)}35%{opacity:1;transform:scale(1) translateY(0)}70%{opacity:1;transform:scale(1.02)}100%{opacity:0;transform:scale(1.08) translateY(-8px)}}
+
+.avatar{object-fit:cover;overflow:hidden}
+.avatar-fallback{background:#6b472b url("../../content/launcher-logo.svg") center/70% no-repeat}
+.repair-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.repair-grid>div{border:1px solid rgba(139,99,61,.35);border-radius:9px;padding:9px;background:rgba(15,9,6,.45)}
+.repair-grid span{display:block;color:#806b58;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.repair-grid strong{font-size:.82rem;color:#ead8c1}
+#updateInfo{min-height:44px}
