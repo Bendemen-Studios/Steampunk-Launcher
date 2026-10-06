@@ -62,6 +62,7 @@ async function startup() {
   await loadAccounts();
   await loadEra();
   await loadServerStatus();
+  await loadTools();
   await loadSocial();
   await loadAffiliates();
   showMain();
@@ -100,6 +101,26 @@ async function loadEra() {
     $("modpackVersion").textContent = "Manifest niet bereikbaar";
     $("minecraftVersion").textContent = "—";
     $("launchStatus").textContent = error.message || "Manifest unavailable.";
+  }
+}
+
+async function loadTools() {
+  try {
+    const settings = await window.launcherAPI.getSettings();
+    $("ramMin").value = settings.memory?.min || "2G";
+    $("ramMax").value = settings.memory?.max || "6G";
+    $("fpsLimit").value = settings.fps || 120;
+    $("resolution").value = settings.resolution || "";
+    $("fullscreen").checked = !!settings.fullscreen;
+    $("vsync").checked = settings.vsync !== false;
+
+    const hw = await window.launcherAPI.getHardwareInfo();
+    $("hardwareInfo").textContent = `${hw.cpu} • ${hw.cores} cores • ${hw.ramGB} GB RAM • ${hw.freeDiskGB} GB vrije schijfruimte${hw.gpu?.length ? " • " + hw.gpu[0] : ""}`;
+    const logs = await window.launcherAPI.getEraLogs(selectedEra);
+    const crashes = await window.launcherAPI.getCrashReports(selectedEra);
+    $("logInfo").textContent = `${logs.length} recente logbestanden • ${crashes.length} crash reports`;
+  } catch (error) {
+    $("hardwareInfo").textContent = error.message || "Systeeminformatie niet beschikbaar.";
   }
 }
 
@@ -164,7 +185,7 @@ async function loadSocial() {
 }
 
 $("language").addEventListener("change", e => setLanguage(e.target.value));
-$("eraChooser").addEventListener("change", loadEra);
+$("eraChooser").addEventListener("change", async () => { await loadEra(); await loadTools(); });
 
 $("loginAccount").addEventListener("click", async () => {
   $("loginAccount").disabled = true;
@@ -235,6 +256,39 @@ window.launcherAPI.onUpdate(data => {
   if (data.event === "modpack-start") $("launchStatus").textContent = `${i18n[language].modpackDownloading} ${data.version}`;
   if (data.event === "modpack-progress") $("launchStatus").textContent = `${i18n[language].modpackDownloading} ${data.percent}%`;
   if (data.event === "modpack-ready") $("launchStatus").textContent = `${i18n[language].modpackReady}: ${data.version}`;
+});
+
+
+$("saveSettings").addEventListener("click", async () => {
+  const settings = {
+    memory: { min: $("ramMin").value.trim() || "2G", max: $("ramMax").value.trim() || "6G" },
+    fps: Math.max(30, Number($("fpsLimit").value) || 120),
+    resolution: $("resolution").value.trim(),
+    fullscreen: $("fullscreen").checked,
+    vsync: $("vsync").checked
+  };
+  await window.launcherAPI.saveSettings(settings);
+  $("maintenanceStatus").textContent = language === "nl" ? "Instellingen opgeslagen." : "Settings saved.";
+});
+
+$("repairEra").addEventListener("click", async () => {
+  $("repairEra").disabled = true;
+  $("maintenanceStatus").textContent = language === "nl" ? "Modpack wordt gecontroleerd en hersteld..." : "Checking and repairing modpack...";
+  try {
+    const result = await window.launcherAPI.repairEra(selectedEra);
+    $("maintenanceStatus").textContent = result.ok ? `Modpack ${result.version} is hersteld.` : result.message;
+    await loadEra();
+    await loadTools();
+  } catch (error) {
+    $("maintenanceStatus").textContent = error.message || "Repair failed.";
+  } finally { $("repairEra").disabled = false; }
+});
+
+$("cleanupEra").addEventListener("click", async () => {
+  const result = await window.launcherAPI.cleanupEra(selectedEra);
+  $("maintenanceStatus").textContent = language === "nl"
+    ? `${result.removed} oude downloadbestanden verwijderd.`
+    : `${result.removed} old download files removed.`;
 });
 
 $("updateInstall").addEventListener("click", () => window.launcherAPI.installUpdate());
