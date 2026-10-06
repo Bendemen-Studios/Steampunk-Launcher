@@ -24,7 +24,7 @@ jobs:
             platform: linux
             targets: AppImage deb rpm
 
-    runs-on: \${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -37,13 +37,13 @@ jobs:
       - name: Install dependencies
         run: npm install
       - name: Build launcher
-        run: npx electron-builder --\${{ matrix.platform }} \${{ matrix.targets }}
+        run: npx electron-builder --${{ matrix.platform }} ${{ matrix.targets }}
         env:
-          GH_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: steampunk-launcher-\${{ matrix.platform }}
+          name: steampunk-launcher-${{ matrix.platform }}
           path: dist/*
 
   release:
