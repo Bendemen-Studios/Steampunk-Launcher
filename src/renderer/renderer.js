@@ -86,8 +86,31 @@ function renderAccount() {
   $("profileAvatar").textContent = account.name.charAt(0).toUpperCase();
 }
 
+async function applyEraVisuals(era, animate = true) {
+  const visuals = await window.launcherAPI.getEraVisuals(era);
+  if (!visuals) return;
+  const root = document.documentElement;
+  const base = "../../content/eras/" + era + "/";
+  const nextBackground = "url(" + JSON.stringify(base + visuals.background) + ")";
+  const nextLogo = base + visuals.logo;
+  if (animate) {
+    $("eraTransitionLogo").src = nextLogo;
+    $("eraTransition").classList.remove("hidden");
+    $("eraTransition").classList.remove("era-enter");
+    void $("eraTransition").offsetWidth;
+    $("eraTransition").classList.add("era-enter");
+    await new Promise(r => setTimeout(r, 420));
+  }
+  root.style.setProperty("--era-bg", nextBackground);
+  root.style.setProperty("--era-accent", visuals.accent || "#c18a51");
+  $("eraLogo").src = nextLogo;
+  $("eraLogo").alt = visuals.id || era;
+  $("eraTransition").classList.add("hidden");
+}
+
 async function loadEra() {
   selectedEra = $("eraChooser").value;
+  await applyEraVisuals(selectedEra, false);
   try {
     const manifest = await window.launcherAPI.getEraManifest(selectedEra);
     const version = manifest?.latestVersion || manifest?.version;
@@ -188,7 +211,7 @@ async function loadSocial() {
 }
 
 $("language").addEventListener("change", e => setLanguage(e.target.value));
-$("eraChooser").addEventListener("change", async () => { await loadEra(); await loadTools(); });
+$("eraChooser").addEventListener("change", async () => { await applyEraVisuals($("eraChooser").value, true); await loadEra(); await loadTools(); });
 
 $("loginAccount").addEventListener("click", async () => {
   $("loginAccount").disabled = true;
