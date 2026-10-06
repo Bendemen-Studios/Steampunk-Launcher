@@ -58,7 +58,8 @@
       <article class="panel">
         <div class="panel-heading"><span>👤</span><h3>Profiel</h3></div>
         <div class="profile-row">
-          <div id="profileAvatar" class="avatar">?</div>
+          <img id="profileAvatar" class="avatar" alt="Minecraft skin">
+
           <div><strong id="profileName">Geen account geselecteerd</strong><span>Lokale Minecraft-profielen</span></div>
           <button id="switchProfile">Wisselen</button>
         </div>
@@ -101,14 +102,29 @@
         <button id="saveSettings" class="tool-button">Instellingen opslaan</button>
       </article>
 
-      <article class="panel">
-        <div class="panel-heading"><span>🔧</span><h3>Onderhoud</h3></div>
-        <p class="tool-text">Controleer of de gekozen Era compleet is en herstel de modpackbestanden indien nodig.</p>
+      <article class="panel repair-panel">
+        <div class="panel-heading"><span>🔧</span><h3>Repair Center</h3></div>
+        <p class="tool-text">Controleer de geselecteerde Era, zie wat er ontbreekt en herstel de modpack veilig wanneer nodig.</p>
+        <div class="repair-grid">
+          <div><span>Geïnstalleerd</span><strong id="repairInstalled">—</strong></div>
+          <div><span>Beschikbaar</span><strong id="repairLatest">—</strong></div>
+          <div><span>Archief</span><strong id="repairArchive">—</strong></div>
+          <div><span>Vrije ruimte</span><strong id="repairDisk">—</strong></div>
+          <div><span>Wijzigingen</span><strong id="repairChanges">—</strong></div>
+          <div><span>Back-ups</span><strong id="repairBackups">—</strong></div>
+        </div>
         <div class="tool-actions">
-          <button id="repairEra" class="tool-button">Modpack herstellen</button>
+          <button id="checkRepair" class="tool-button">Controleren</button>
+          <button id="repairEra" class="tool-button">Herstellen</button>
           <button id="cleanupEra" class="tool-button">Cache opruimen</button>
         </div>
         <p id="maintenanceStatus" class="status-message"></p>
+      </article>
+
+      <article class="panel">
+        <div class="panel-heading"><span>⬇</span><h3>Modpack updater</h3></div>
+        <div id="updateInfo" class="tool-text">Modpackstatus wordt geladen...</div>
+        <button id="checkModpack" class="tool-button">Op updates controleren</button>
       </article>
 
       <article class="panel">
