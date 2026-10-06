@@ -43,7 +43,10 @@ function sendUpdate(event, data = {}) {
 }
 
 function configureUpdater() {
-  if (process.env.NODE_ENV === "development" || !app.isPackaged) return;
+  if (process.env.NODE_ENV === "development" || !app.isPackaged) {
+    sendUpdate("dev");
+    return;
+  }
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.on("checking-for-update", () => sendUpdate("checking"));
