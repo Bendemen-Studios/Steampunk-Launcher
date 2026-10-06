@@ -16,6 +16,7 @@ jobs:
           cache: npm
       - run: npm install
       - run: node --check src/main.js
+      - run: node --check src/modpack-manager.js
       - run: node --check src/preload.js
       - run: node --check src/account-store.js
       - run: node --check src/renderer/renderer.js
