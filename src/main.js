@@ -8,6 +8,7 @@ const AdmZip = require("adm-zip");
 const { getMinecraftServerStatus } = require("mc-server-util");
 const { Launch } = require("minecraft-java-core");
 const accounts = require("./account-store");
+const modpacks = require("./modpack-manager");
 
 const ROOT = path.join(__dirname, "..");
 const CONTENT_DIR = path.join(ROOT, "content");
@@ -242,6 +243,19 @@ async function syncModpack(era, manifest) {
   sendUpdate("modpack-ready", { version });
 }
 
+async function resolveEraManifest(era) {
+  if (!["steamy-times", "a-new-era"].includes(era)) throw new Error("Invalid Era.");
+  const local = JSON.parse(fs.readFileSync(path.join(ERAS_DIR, era, "modpack.json"), "utf8"));
+  if (!local.remoteManifestUrl) return local;
+  try {
+    const remote = await modpacks.fetchManifest(local.remoteManifestUrl);
+    if (!remote || remote.id !== era || !remote.latestVersion || !remote.versions || !remote.versions[remote.latestVersion]) throw new Error("Remote Era manifest is incomplete.");
+    return { ...local, ...remote };
+  } catch (error) {
+    if (local.version && local.version !== "0.0.0") return local;
+    throw error;
+  }
+}
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
