@@ -15,6 +15,9 @@ const ERAS_DIR = path.join(CONTENT_DIR, "eras");
 const CONFIG_FILE = path.join(ROOT, "config", "launcher.json");
 const SUPPORTED_ERAS = ["steamy-times", "a-new-era"];
 const MODPACK_FOLDERS = ["mods", "config", "resourcepacks", "datapacks", "essential", "fancymenu_data", "shaderpacks"];
+const USER_DATA_DIR = () => path.join(app.getPath("userData"), "minecraft");
+const SETTINGS_FILE = () => path.join(app.getPath("userData"), "launcher-settings.json");
+const LOG_DIR = () => path.join(app.getPath("userData"), "logs");
 const REMOTE_MANIFEST_MAX_BYTES = 1024 * 1024;
 const DOWNLOAD_CHUNK_BYTES = 1024 * 1024;
 let mainWindow;
@@ -26,8 +29,10 @@ function readConfig() {
 }
 
 function ensureContentLayout() {
+  fs.mkdirSync(LOG_DIR(), { recursive: true });
   for (const era of SUPPORTED_ERAS) {
-    for (const folder of MODPACK_FOLDERS) fs.mkdirSync(path.join(ERAS_DIR, era, folder), { recursive: true });
+    const eraDir = path.join(USER_DATA_DIR(), "instances", era);
+    for (const folder of MODPACK_FOLDERS) fs.mkdirSync(path.join(eraDir, folder), { recursive: true });
     const manifest = path.join(ERAS_DIR, era, "modpack.json");
     if (!fs.existsSync(manifest)) {
       fs.writeFileSync(manifest, JSON.stringify({
@@ -175,7 +180,7 @@ function safeExtract(zipPath, destination) {
 }
 
 async function installModpackArchive(era, archivePath, version) {
-  const eraDir = path.join(ERAS_DIR, era);
+  const eraDir = path.join(USER_DATA_DIR(), "instances", era);
   const extractDir = path.join(eraDir, ".update-extracted");
   fs.rmSync(extractDir, { recursive: true, force: true });
   fs.mkdirSync(extractDir, { recursive: true });
@@ -229,32 +234,124 @@ async function syncModpack(era, manifest) {
   const versionInfo = manifest.versions?.[version];
   if (!version || !versionInfo?.url) return;
 
-  const eraDir = path.join(ERAS_DIR, era);
+  const eraDir = path.join(USER_DATA_DIR(), "instances", era);
   const stateFile = path.join(eraDir, ".installed-version");
   const installedVersion = fs.existsSync(stateFile) ? fs.readFileSync(stateFile, "utf8").trim() : "";
   const archive = path.join(eraDir, ".downloads", `${version}.zip`);
 
-  if (installedVersion === version && fs.existsSync(archive)) return;
+  if (installedVersion === version && fs.existsSync(archive)) return { updated: false, version };
 
   sendUpdate("modpack-start", { version, installedVersion });
-  await downloadFile(versionInfo.url, archive, versionInfo.sha256 || null);
-  await installModpackArchive(era, archive, version);
-  sendUpdate("modpack-ready", { version });
-}
-
-async function resolveEraManifest(era) {
-  if (!["steamy-times", "a-new-era"].includes(era)) throw new Error("Invalid Era.");
-  const local = JSON.parse(fs.readFileSync(path.join(ERAS_DIR, era, "modpack.json"), "utf8"));
-  if (!local.remoteManifestUrl) return local;
+  const backupDir = installedVersion
+    ? path.join(eraDir, ".backups", installedVersion.replace(/[^a-zA-Z0-9._-]/g, "_"))
+    : null;
+  if (backupDir && !fs.existsSync(backupDir)) {
+    fs.mkdirSync(path.dirname(backupDir), { recursive: true });
+    for (const folder of MODPACK_FOLDERS) {
+      const source = path.join(eraDir, folder);
+      if (fs.existsSync(source)) fs.cpSync(source, path.join(backupDir, folder), { recursive: true });
+    }
+  }
   try {
-    const remote = await modpacks.fetchManifest(local.remoteManifestUrl);
-    if (!remote || remote.id !== era || !remote.latestVersion || !remote.versions || !remote.versions[remote.latestVersion]) throw new Error("Remote Era manifest is incomplete.");
-    return { ...local, ...remote };
+    await downloadFile(versionInfo.url, archive, versionInfo.sha256 || null);
+    await installModpackArchive(era, archive, version);
   } catch (error) {
-    if (local.version && local.version !== "0.0.0") return local;
+    if (backupDir && fs.existsSync(backupDir)) {
+      for (const folder of MODPACK_FOLDERS) {
+        const source = path.join(backupDir, folder);
+        if (fs.existsSync(source)) fs.cpSync(source, path.join(eraDir, folder), { recursive: true, force: true });
+      }
+      fs.writeFileSync(stateFile, installedVersion, "utf8");
+      sendUpdate("modpack-rollback", { version: installedVersion });
+    }
     throw error;
   }
+  sendUpdate("modpack-ready", { version });
+  return { updated: true, version };
 }
+
+
+function readSettings() {
+  try { return JSON.parse(fs.readFileSync(SETTINGS_FILE(), "utf8")); }
+  catch { return { memory: { min: "2G", max: "6G" }, javaPath: "", resolution: "", fullscreen: false, vsync: true, fps: 120, javaArgs: "" }; }
+}
+
+function writeSettings(settings) {
+  const merged = { ...readSettings(), ...settings };
+  fs.mkdirSync(path.dirname(SETTINGS_FILE()), { recursive: true });
+  fs.writeFileSync(SETTINGS_FILE(), JSON.stringify(merged, null, 2));
+  return merged;
+}
+
+async function getHardwareInfo() {
+  const os = require("os");
+  let gpu = [];
+  try {
+    const info = await app.getGPUInfoForSandbox();
+    gpu = (info.gpuDevice || []).map(x => x.deviceString).filter(Boolean);
+  } catch {}
+  return {
+    cpu: os.cpus()[0]?.model || "Unknown",
+    cores: os.cpus().length,
+    ramGB: Math.round(os.totalmem() / 1024 / 1024 / 1024),
+    freeDiskGB: Math.round(fs.statfsSync(USER_DATA_DIR()).bavail * fs.statfsSync(USER_DATA_DIR()).bsize / 1024 / 1024 / 1024),
+    gpu
+  };
+}
+
+function getEraGamePath(era) {
+  if (!SUPPORTED_ERAS.includes(era)) throw new Error("Invalid Era.");
+  return path.join(USER_DATA_DIR(), "instances", era);
+}
+
+function getEraLogs(era) {
+  const dir = getEraGamePath(era);
+  const logFiles = [];
+  const logDir = path.join(dir, "logs");
+  if (fs.existsSync(logDir)) {
+    for (const file of fs.readdirSync(logDir).filter(f => f.endsWith(".log")).sort().reverse().slice(0, 10)) {
+      const full = path.join(logDir, file);
+      logFiles.push({ name: file, size: fs.statSync(full).size });
+    }
+  }
+  return logFiles;
+}
+
+function getCrashReports(era) {
+  const dir = path.join(getEraGamePath(era), "crash-reports");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter(f => f.endsWith(".txt")).sort().reverse().slice(0, 10);
+}
+
+function cleanupEra(era) {
+  const dir = getEraGamePath(era);
+  const downloads = path.join(dir, ".downloads");
+  if (!fs.existsSync(downloads)) return { removed: 0 };
+  const installed = fs.existsSync(path.join(dir, ".installed-version")) ? fs.readFileSync(path.join(dir, ".installed-version"), "utf8").trim() : "";
+  let removed = 0;
+  for (const file of fs.readdirSync(downloads)) {
+    const keep = installed && file === installed + ".zip";
+    if (!keep) { fs.rmSync(path.join(downloads, file), { force: true }); removed++; }
+  }
+  return { removed };
+}
+
+async function repairEra(era) {
+  const manifest = await resolveEra(era);
+  const version = manifest.latestVersion || manifest.version;
+  const info = manifest.versions?.[version];
+  if (!info?.url) return { ok: false, message: "No modpack archive is configured." };
+  const dir = getEraGamePath(era);
+  const archive = path.join(dir, ".downloads", version + ".zip");
+  if (fs.existsSync(archive) && info.sha256) {
+    const actual = await sha256File(archive);
+    if (actual.toLowerCase() !== info.sha256.toLowerCase()) fs.rmSync(archive, { force: true });
+  }
+  fs.writeFileSync(path.join(dir, ".installed-version"), "");
+  await syncModpack(era, manifest);
+  return { ok: true, version };
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -295,6 +392,13 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("get-era-manifest", async (_, era) => resolveEra(era));
+  ipcMain.handle("get-settings", () => readSettings());
+  ipcMain.handle("save-settings", (_, settings) => writeSettings(settings));
+  ipcMain.handle("get-hardware-info", () => getHardwareInfo());
+  ipcMain.handle("repair-era", async (_, era) => repairEra(era));
+  ipcMain.handle("cleanup-era", (_, era) => cleanupEra(era));
+  ipcMain.handle("get-era-logs", (_, era) => getEraLogs(era));
+  ipcMain.handle("get-crash-reports", (_, era) => getCrashReports(era));
 
   ipcMain.handle("list-accounts", () => accounts.listAccounts());
   ipcMain.handle("login-account", async () => accounts.login());
@@ -328,7 +432,7 @@ app.whenReady().then(() => {
 
     await syncModpack(payload.era, manifest);
 
-    const gamePath = path.join(app.getPath("userData"), "minecraft", "instances", payload.era);
+    const gamePath = getEraGamePath(payload.era);
     fs.mkdirSync(gamePath, { recursive: true });
 
     const launcher = new Launch();
@@ -342,7 +446,7 @@ app.whenReady().then(() => {
       path: gamePath,
       authenticator: account.auth,
       version: manifest.minecraftVersion,
-      memory: readConfig().memory || { min: "2G", max: "6G" },
+      memory: readSettings().memory || readConfig().memory || { min: "2G", max: "6G" },
       detached: false,
       instance: payload.era
     };
