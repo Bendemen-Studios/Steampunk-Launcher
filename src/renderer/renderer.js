@@ -1,8 +1,26 @@
 const $ = id => document.getElementById(id);
 
 const i18n = {
-  nl: { updateTitle:"Launcher bijwerken", checking:"Controleren op updates...", loading:"Launcher voorbereiden...", done:"Klaar", current:"Je gebruikt de nieuwste versie.", available:"Nieuwe launcher gevonden", downloaded:"Update klaar om te installeren", heroTitle:"Kies jouw Era", heroText:"Elke Era heeft zijn eigen avontuur, modpack en configuratie.", launch:"▶ Minecraft starten", noAccount:"Geen account geselecteerd", server:"Controleren...", online:"Online", offline:"Offline", notConfigured:"Server nog niet ingesteld", players:n=>"spelers online", login:"Inloggen..." },
-  en: { updateTitle:"Updating launcher", checking:"Checking for updates...", loading:"Preparing launcher...", done:"Ready", current:"You are using the latest version.", available:"New launcher version found", downloaded:"Update ready to install", heroTitle:"Choose your Era", heroText:"Each Era has its own adventure, modpack and configuration.", launch:"▶ Launch Minecraft", noAccount:"No account selected", server:"Checking...", online:"Online", offline:"Offline", notConfigured:"Server not configured yet", players:n=>"players online", login:"Signing in..." }
+  nl: {
+    updateTitle:"Launcher bijwerken", checking:"Controleren op updates...", loading:"Launcher voorbereiden...",
+    done:"Klaar", current:"Je gebruikt de nieuwste versie.", available:"Nieuwe launcher gevonden",
+    downloaded:"Update klaar om te installeren", heroTitle:"Kies jouw Era",
+    heroText:"Elke Era heeft zijn eigen avontuur, modpack en configuratie.", launch:"▶ Minecraft starten",
+    noAccount:"Geen account geselecteerd", server:"Controleren...", online:"Online", offline:"Offline",
+    notConfigured:"Server nog niet ingesteld", players:n=>"spelers online", login:"Inloggen...",
+    modpackChecking:"Modpack controleren...", modpackDownloading:"Modpack downloaden...",
+    modpackInstalling:"Modpack installeren...", modpackReady:"Modpack klaar"
+  },
+  en: {
+    updateTitle:"Updating launcher", checking:"Checking for updates...", loading:"Preparing launcher...",
+    done:"Ready", current:"You are using the latest version.", available:"New launcher version found",
+    downloaded:"Update ready to install", heroTitle:"Choose your Era",
+    heroText:"Each Era has its own adventure, modpack and configuration.", launch:"▶ Launch Minecraft",
+    noAccount:"No account selected", server:"Checking...", online:"Online", offline:"Offline",
+    notConfigured:"Server not configured yet", players:n=>"players online", login:"Signing in...",
+    modpackChecking:"Checking modpack...", modpackDownloading:"Downloading modpack...",
+    modpackInstalling:"Installing modpack...", modpackReady:"Modpack ready"
+  }
 };
 
 let language = "nl";
@@ -10,6 +28,9 @@ let selectedEra = "steamy-times";
 let selectedAccountId = null;
 let accountsList = [];
 let affiliateState = { campaigns: [], index: 0, timer: null, currentUrl: null };
+let updaterResolved = false;
+let updaterResolve;
+const updaterReadyPromise = new Promise(resolve => { updaterResolve = resolve; });
 
 function setLanguage(next) {
   language = next;
@@ -31,11 +52,6 @@ function showMain() {
   $("updateScreen").classList.add("hidden");
   $("mainScreen").classList.remove("hidden");
 }
-
-let updaterResolved = false;
-let updaterResolve;
-
-const updaterReadyPromise = new Promise(resolve => { updaterResolve = resolve; });
 
 async function startup() {
   progress(8, i18n[language].checking);
@@ -71,9 +87,19 @@ function renderAccount() {
 
 async function loadEra() {
   selectedEra = $("eraChooser").value;
-  const manifest = await window.launcherAPI.getEraManifest(selectedEra);
-  $("modpackVersion").textContent = manifest?.version && manifest.version !== "0.0.0" ? manifest.version : "Nog niet geïnstalleerd";
-  $("minecraftVersion").textContent = manifest?.minecraftVersion || "Wordt later ingesteld";
+  try {
+    const manifest = await window.launcherAPI.getEraManifest(selectedEra);
+    const version = manifest?.latestVersion || manifest?.version;
+    $("modpackVersion").textContent = version && version !== "0.0.0" ? version : "Nog niet geïnstalleerd";
+    $("minecraftVersion").textContent = manifest?.minecraftVersion || "Wordt later ingesteld";
+    $("launchStatus").textContent = manifest?.loader
+      ? `${manifest.loader} ${manifest.loaderBuild || "latest"} • Minecraft ${manifest.minecraftVersion || "?"}`
+      : "";
+  } catch (error) {
+    $("modpackVersion").textContent = "Manifest niet bereikbaar";
+    $("minecraftVersion").textContent = "—";
+    $("launchStatus").textContent = error.message || "Manifest unavailable.";
+  }
 }
 
 async function loadServerStatus() {
@@ -88,11 +114,9 @@ async function loadAffiliates() {
   try {
     const data = await window.launcherAPI.getAffiliateBanners();
     if (!data?.enabled || !Array.isArray(data.campaigns) || !data.campaigns.length) return;
-
     affiliateState.campaigns = data.campaigns;
     affiliateState.index = 0;
     renderAffiliate();
-
     const rotationMs = Math.max(5000, Number(data.rotationSeconds || 15) * 1000);
     affiliateState.timer = setInterval(() => {
       affiliateState.index = (affiliateState.index + 1) % affiliateState.campaigns.length;
@@ -106,13 +130,11 @@ async function loadAffiliates() {
 function renderAffiliate() {
   const campaign = affiliateState.campaigns[affiliateState.index];
   if (!campaign) return;
-
   affiliateState.currentUrl = campaign.url;
   $("affiliateLabel").textContent = campaign.label || "PARTNER";
   $("affiliateTitle").textContent = campaign.title;
   $("affiliateDescription").textContent = campaign.description || "";
   $("affiliateButton").textContent = campaign.button || "Bekijk aanbieding →";
-
   const image = $("affiliateImage");
   const fallback = $("affiliateFallback");
   if (campaign.image) {
@@ -120,16 +142,12 @@ function renderAffiliate() {
     image.alt = campaign.alt || campaign.title;
     image.classList.remove("hidden");
     fallback.classList.add("hidden");
-    image.onerror = () => {
-      image.classList.add("hidden");
-      fallback.classList.remove("hidden");
-    };
+    image.onerror = () => { image.classList.add("hidden"); fallback.classList.remove("hidden"); };
   } else {
     image.removeAttribute("src");
     image.classList.add("hidden");
     fallback.classList.remove("hidden");
   }
-
   $("affiliateBanner").classList.remove("hidden");
 }
 
@@ -183,10 +201,10 @@ $("launchButton").addEventListener("click", async () => {
     return;
   }
   $("launchButton").disabled = true;
-  $("launchStatus").textContent = language === "nl" ? "Minecraft wordt voorbereid..." : "Preparing Minecraft...";
+  $("launchStatus").textContent = i18n[language].modpackChecking;
   try {
-    await window.launcherAPI.launchMinecraft({ era:selectedEra, accountId:selectedAccountId });
-    $("launchStatus").textContent = language === "nl" ? "Minecraft is gestart." : "Minecraft has started.";
+    await window.launcherAPI.launchMinecraft({ era: selectedEra, accountId: selectedAccountId });
+    $("launchStatus").textContent = i18n[language].modpackReady;
   } catch (error) {
     $("launchStatus").textContent = error.message || "Minecraft launch failed.";
   } finally {
@@ -194,18 +212,25 @@ $("launchButton").addEventListener("click", async () => {
   }
 });
 
-window.launcherAPI.onUpdate(data => {\n  if (["dev","current","error","downloaded"].includes(data.event)) { updaterResolved = true; updaterResolve(); }
-  if (data.event === "checking") progress(10, i18n[language].checking);
-  if (data.event === "available") {
-    progress(25, `${i18n[language].available}: v${data.version}`);
+window.launcherAPI.onUpdate(data => {
+  if (["dev","current","error"].includes(data.event)) {
+    updaterResolved = true;
+    updaterResolve();
   }
+  if (data.event === "checking") progress(10, i18n[language].checking);
+  if (data.event === "available") progress(25, `${i18n[language].available}: v${data.version}`);
   if (data.event === "progress") progress(Math.max(25, data.percent), `${i18n[language].loading} ${data.percent}%`);
   if (data.event === "current") progress(100, i18n[language].current);
   if (data.event === "downloaded") {
+    updaterResolved = true;
+    updaterResolve();
     progress(100, i18n[language].downloaded);
     $("updateInstall").classList.remove("hidden");
   }
   if (data.event === "error") progress(100, i18n[language].done);
+  if (data.event === "modpack-start") $("launchStatus").textContent = `${i18n[language].modpackDownloading} ${data.version}`;
+  if (data.event === "modpack-progress") $("launchStatus").textContent = `${i18n[language].modpackDownloading} ${data.percent}%`;
+  if (data.event === "modpack-ready") $("launchStatus").textContent = `${i18n[language].modpackReady}: ${data.version}`;
 });
 
 $("updateInstall").addEventListener("click", () => window.launcherAPI.installUpdate());
