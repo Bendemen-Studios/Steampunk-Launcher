@@ -57,3 +57,20 @@ h1,h2,h3,p{margin-top:0}
 .social{background:#241710;border:1px solid #65462d;color:#d9b98e;border-radius:9px;padding:10px;cursor:pointer;text-align:left}
 .social:hover{background:#342116}
 @media(max-width:1000px){body{overflow:auto}.hero{grid-template-columns:1fr}.hero-art{display:none}.cards{grid-template-columns:1fr}.hero h2{font-size:3rem}}
+
+
+/* Affiliate banner */
+body{padding-bottom:96px}
+.affiliate-banner{position:fixed;z-index:20;left:50%;bottom:14px;transform:translateX(-50%);width:min(920px,calc(100vw - 28px));min-height:72px;display:flex;align-items:center;gap:14px;padding:10px 44px 10px 10px;border:1px solid rgba(189,139,82,.65);border-radius:14px;background:rgba(24,15,10,.97);box-shadow:0 14px 40px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(8px);cursor:pointer}
+.affiliate-media{width:130px;height:58px;flex:0 0 130px;border-radius:9px;overflow:hidden;background:#1b110b;border:1px solid #60432c;display:grid;place-items:center}
+.affiliate-media img{width:100%;height:100%;object-fit:cover}
+.affiliate-fallback{font-size:.72rem;letter-spacing:.15em;color:#bd8b52;font-weight:700}
+.affiliate-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.affiliate-label{font-size:.65rem;letter-spacing:.14em;color:#9b7653;text-transform:uppercase}
+.affiliate-copy strong{font-size:1rem;color:#f4ead8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.affiliate-copy span:last-child{font-size:.8rem;color:#a99682;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.affiliate-button{border:1px solid #9b7046;background:#5d371f;color:#f8e8d2;border-radius:8px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.affiliate-button:hover{filter:brightness(1.12)}
+.affiliate-close{position:absolute;right:9px;top:8px;border:0;background:transparent;color:#927b65;font-size:1.25rem;cursor:pointer;line-height:1}
+.affiliate-close:hover{color:#f4ead8}
+@media(max-width:700px){.affiliate-banner{width:calc(100vw - 18px)}.affiliate-media{display:none}.affiliate-button{font-size:.78rem;padding:8px}.affiliate-copy strong{font-size:.9rem}}
