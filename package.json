@@ -1,32 +1,114 @@
 {
-  "name":"steampunk-launcher",
-  "version":"0.1.0",
-  "description":"Steampunk SMP Minecraft Launcher",
-  "private":true,
-  "main":"src/main.js",
-  "scripts":{
-    "start":"electron .",
-    "dev":"electron .",
-    "dist":"electron-builder --publish never"
+  "name": "steampunk-launcher",
+  "version": "0.1.0",
+  "description": "Steampunk SMP Minecraft Launcher",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac dmg zip",
+    "dist:linux": "electron-builder --linux AppImage deb rpm"
   },
-  "dependencies":{
-    "adm-zip":"^0.5.16",
-    "electron-updater":"^6.8.10",
-    "mc-server-util":"^1.0.0",
-    "minecraft-java-core":"^4.2.9"
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "electron-updater": "^6.8.10",
+    "mc-server-util": "^1.0.0",
+    "minecraft-java-core": "^4.2.9"
   },
-  "devDependencies":{
-    "electron":"^39.0.0",
-    "electron-builder":"^26.17.0"
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.17.0"
   },
-  "build":{
-    "appId":"com.bendemenstudios.steampunklauncher",
-    "productName":"Steampunk SMP Launcher",
-    "asar":true,
-    "publish":[{"provider":"github","owner":"Bendemen-Studios","repo":"Steampunk-Launcher"}],
-    "win":{"target":["nsis"]},
-    "mac":{"target":["dmg","zip"]},
-    "linux":{"target":["AppImage","deb"]},
-    "files":["src/**/*","content/**/*","config/**/*","package.json"]
+  "build": {
+    "appId": "com.bendemenstudios.steampunklauncher",
+    "productName": "Steampunk SMP Launcher",
+    "asar": true,
+    "artifactName": "Steampunk-SMP-Launcher-${version}-${os}-${arch}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Bendemen-Studios",
+        "repo": "Steampunk-Launcher"
+      }
+    ],
+    "files": [
+      "src/**/*",
+      "content/**/*",
+      "config/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "Steampunk-SMP-Launcher-${version}-Windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "Steampunk-SMP-Launcher-${version}-macOS-${arch}.${ext}",
+      "category": "public.app-category.games"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "Steampunk-SMP-Launcher-${version}-Linux-${arch}.${ext}",
+      "category": "Game"
+    },
+    "extraResources": []
   }
 }
