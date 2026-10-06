@@ -240,3 +240,7 @@ body[data-era="a-new-era"] .pipe{background:#6b472b;border-color:#c18a51}
 body[data-era="steamy-times"] .sun{border-color:#686964;box-shadow:0 0 0 10px #303230,0 0 70px #77736c44}
 body[data-era="steamy-times"] .clock{background:#696a66;box-shadow:12px 18px 0 #191b1b}
 body[data-era="steamy-times"] .pipe{background:#353737;border-color:#77736c}
+
+
+/* Hidden utility must always win over component display rules. */
+.hidden{display:none!important}
