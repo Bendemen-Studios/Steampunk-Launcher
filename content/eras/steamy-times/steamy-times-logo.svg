@@ -1,1 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300"><g fill="none" stroke="#e0a867"><circle cx="450" cy="150" r="104" stroke-width="8"/><circle cx="450" cy="150" r="76" stroke-width="3" stroke-dasharray="10 8"/></g><text x="450" y="140" text-anchor="middle" fill="#fff0d5" font-family="Georgia,serif" font-size="64" font-weight="bold">STEAMY</text><text x="450" y="205" text-anchor="middle" fill="#d59a59" font-family="Georgia,serif" font-size="48" letter-spacing="9">TIMES</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 630">
+<defs>
+  <radialGradient id="bg" cx="50%" cy="45%" r="65%"><stop stop-color="#a98f80"/><stop offset=".65" stop-color="#705b62"/><stop offset="1" stop-color="#4d3d49"/></radialGradient>
+  <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#d1b786"/><stop offset="1" stop-color="#b99e72"/></linearGradient>
+  <linearGradient id="coat" x2="0" y2="1"><stop stop-color="#d0b98d"/><stop offset="1" stop-color="#b9a078"/></linearGradient>
+</defs>
+
+<!-- Steampunk emblem -->
+<circle cx="300" cy="315" r="245" fill="url(#bg)" stroke="url(#gold)" stroke-width="20"/>
+<g opacity=".16" stroke="#e0cba2" stroke-width="9">
+  <path d="M65 180H535M65 270H535M65 360H535M65 450H535"/>
+  <path d="M120 80V550M210 80V550M300 80V550M390 80V550M480 80V550"/>
+</g>
+
+<!-- left character -->
+<g>
+  <path d="M125 315c13-28 40-42 76-42s63 14 76 42v78H125z" fill="#3f3043"/>
+  <path d="M137 393c6 64 27 98 64 98s58-34 64-98z" fill="url(#coat)"/>
+  <path d="M137 274h128l-9 48H146z" fill="#3d2e42"/>
+  <path d="M155 273l-7-28q53-17 106 0l-7 28z" fill="#403145"/>
+  <circle cx="201" cy="255" r="23" fill="#d1b786" stroke="#9b845f" stroke-width="5"/>
+  <path d="M201 239v18l12 7" fill="none" stroke="#392a3e" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="158" cy="246" r="7" fill="#d1b786"/><circle cx="244" cy="246" r="7" fill="#d1b786"/>
+  <circle cx="164" cy="325" r="31" fill="#34263a" stroke="#c7ad7d" stroke-width="9"/>
+  <circle cx="238" cy="325" r="31" fill="#34263a" stroke="#c7ad7d" stroke-width="9"/>
+  <path d="M154 313l14-9M228 313l14-9" stroke="#695366" stroke-width="6" stroke-linecap="round"/>
+</g>
+
+<!-- right character -->
+<g>
+  <path d="M330 315c13-28 40-42 76-42s63 14 76 42v78H330z" fill="#493645"/>
+  <path d="M342 393c6 64 27 98 64 98s58-34 64-98z" fill="url(#coat)"/>
+  <path d="M337 273h128v48H346z" fill="#493445"/>
+  <path d="M360 273v-53h84v53z" fill="#493445"/>
+  <g fill="#cdb27d" stroke="#9b845f" stroke-width="4">
+    <circle cx="382" cy="252" r="21"/><circle cx="436" cy="230" r="21"/><circle cx="440" cy="269" r="16"/>
+  </g>
+  <g stroke="#806c59" stroke-width="5" stroke-linecap="round">
+    <path d="M382 239v26M369 252h26M436 217v26M423 230h26M440 259v20M430 269h20"/>
+  </g>
+  <path d="M330 323q76 66 152 0v27q-76 66-152 0z" fill="#4b3648"/>
+  <circle cx="384" cy="325" r="31" fill="#34263a" stroke="#c7ad7d" stroke-width="9"/>
+  <circle cx="440" cy="325" r="31" fill="#34263a" stroke="#c7ad7d" stroke-width="9"/>
+  <path d="M374 313l14-9M430 313l14-9" stroke="#695366" stroke-width="6" stroke-linecap="round"/>
+</g>
+
+<!-- wordmark -->
+<g fill="#c9b39b" font-family="Georgia, 'Times New Roman', serif" text-anchor="middle">
+  <text x="930" y="270" font-size="94" letter-spacing="2">STEAMPUNK SMP</text>
+  <text x="930" y="390" font-size="82" letter-spacing="4">STEAMY TIMES</text>
+</g>
+</svg>
