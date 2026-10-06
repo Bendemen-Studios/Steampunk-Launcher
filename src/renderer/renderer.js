@@ -1,51 +1,66 @@
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
 const i18n = {
-  nl: {
-    updateTitle:"Launcher bijwerken", updateText:"De launcher controleert op updates...", checking:"Controleren", loading:"Launcher voorbereiden", done:"Klaar",
-    heroTitle:"Kies jouw Era", heroText:"Elke Era heeft zijn eigen avontuur, modpack en configuratie.",
-    launch:"▶ Minecraft starten", profile:"Geen account geselecteerd", status:"Online controleren...", ready:"Launcher is klaar."
-  },
-  en: {
-    updateTitle:"Updating launcher", updateText:"The launcher is checking for updates...", checking:"Checking", loading:"Preparing launcher", done:"Ready",
-    heroTitle:"Choose your Era", heroText:"Each Era has its own adventure, modpack and configuration.",
-    launch:"▶ Launch Minecraft", profile:"No account selected", status:"Checking online...", ready:"Launcher is ready."
-  }
+  nl: { updateTitle:"Launcher bijwerken", checking:"Controleren op updates...", loading:"Launcher voorbereiden...", done:"Klaar", current:"Je gebruikt de nieuwste versie.", available:"Nieuwe launcher gevonden", downloaded:"Update klaar om te installeren", heroTitle:"Kies jouw Era", heroText:"Elke Era heeft zijn eigen avontuur, modpack en configuratie.", launch:"▶ Minecraft starten", noAccount:"Geen account geselecteerd", server:"Controleren...", online:"Online", offline:"Offline", notConfigured:"Server nog niet ingesteld", players:n=>"spelers online", login:"Inloggen..." },
+  en: { updateTitle:"Updating launcher", checking:"Checking for updates...", loading:"Preparing launcher...", done:"Ready", current:"You are using the latest version.", available:"New launcher version found", downloaded:"Update ready to install", heroTitle:"Choose your Era", heroText:"Each Era has its own adventure, modpack and configuration.", launch:"▶ Launch Minecraft", noAccount:"No account selected", server:"Checking...", online:"Online", offline:"Offline", notConfigured:"Server not configured yet", players:n=>"players online", login:"Signing in..." }
 };
 
 let language = "nl";
 let selectedEra = "steamy-times";
+let selectedAccountId = null;
+let accountsList = [];
 
 function setLanguage(next) {
   language = next;
   const t = i18n[language];
   $("updateTitle").textContent = t.updateTitle;
-  $("updateText").textContent = t.updateText;
   $("heroTitle").textContent = t.heroTitle;
   $("heroText").textContent = t.heroText;
   $("launchButton").textContent = t.launch;
-  if (!$("profileName").dataset.custom) $("profileName").textContent = t.profile;
-  $("serverState").textContent = t.status;
+  if (!selectedAccountId) $("profileName").textContent = t.noAccount;
 }
 
-async function setProgress(value, label) {
+function progress(value, label) {
   $("progressBar").style.width = value + "%";
   $("progressPercent").textContent = value + "%";
   $("progressLabel").textContent = label;
-  await new Promise(r => setTimeout(r, 250));
+}
+
+function showMain() {
+  $("updateScreen").classList.add("hidden");
+  $("mainScreen").classList.remove("hidden");
 }
 
 async function startup() {
-  const t = i18n[language];
-  await setProgress(18, t.checking);
-  await setProgress(42, t.checking);
-  await setProgress(68, t.loading);
-  await setProgress(88, t.loading);
-  await setProgress(100, t.done);
-  await new Promise(r => setTimeout(r, 450));
-  $("updateScreen").classList.add("hidden");
-  $("mainScreen").classList.remove("hidden");
-  loadEra();
+  progress(20, i18n[language].checking);
+  await new Promise(r => setTimeout(r, 250));
+  progress(60, i18n[language].loading);
+  await new Promise(r => setTimeout(r, 250));
+  progress(100, i18n[language].done);
+  await new Promise(r => setTimeout(r, 350));
+  await loadAccounts();
+  await loadEra();
+  await loadServerStatus();
+  await loadSocial();
+  showMain();
+}
+
+async function loadAccounts() {
+  accountsList = await window.launcherAPI.listAccounts();
+  if (!accountsList.length) return;
+  selectedAccountId = accountsList[0].id;
+  renderAccount();
+}
+
+function renderAccount() {
+  const account = accountsList.find(a => a.id === selectedAccountId);
+  if (!account) {
+    $("profileName").textContent = i18n[language].noAccount;
+    $("profileAvatar").textContent = "?";
+    return;
+  }
+  $("profileName").textContent = account.name;
+  $("profileAvatar").textContent = account.name.charAt(0).toUpperCase();
 }
 
 async function loadEra() {
@@ -55,26 +70,86 @@ async function loadEra() {
   $("minecraftVersion").textContent = manifest?.minecraftVersion || "Wordt later ingesteld";
 }
 
+async function loadServerStatus() {
+  const status = await window.launcherAPI.getServerStatus();
+  const t = i18n[language];
+  $("serverState").textContent = !status.configured ? t.notConfigured : status.online ? t.online : t.offline;
+  $("serverPlayers").textContent = status.online ? `${status.players.online}/${status.players.max} ${t.players(status.players.online)}` : "Minecraft server";
+  $("serverDot").style.background = status.online ? "#63bd68" : "#a34d38";
+}
+
+async function loadSocial() {
+  const links = await window.launcherAPI.getSocialLinks();
+  for (const [id, key] of [["discord","discord"],["instagram","instagram"],["whatsapp","whatsapp"]]) {
+    if (links[key]) $(id).onclick = () => window.launcherAPI.openSocial(links[key]);
+  }
+}
+
 $("language").addEventListener("change", e => setLanguage(e.target.value));
 $("eraChooser").addEventListener("change", loadEra);
 
-$("launchButton").addEventListener("click", async () => {
-  const result = await window.launcherAPI.launchMinecraft({ era:selectedEra });
-  $("launchStatus").textContent = result.ok
-    ? (language === "nl" ? "Era voorbereid. Minecraft-integratie kan nu aan deze profielconfiguratie worden gekoppeld." : "Era prepared. Minecraft integration can now be connected to this profile configuration.")
-    : "Launch failed";
-});
-
-document.querySelectorAll(".social").forEach(btn => {
-  btn.addEventListener("click", () => window.launcherAPI.openSocial(btn.dataset.url));
+$("loginAccount").addEventListener("click", async () => {
+  $("loginAccount").disabled = true;
+  $("loginAccount").textContent = i18n[language].login;
+  try {
+    const account = await window.launcherAPI.loginAccount();
+    accountsList.push(account);
+    selectedAccountId = account.id;
+    renderAccount();
+  } catch (error) {
+    $("launchStatus").textContent = error.message || "Microsoft login failed.";
+  } finally {
+    $("loginAccount").disabled = false;
+    $("loginAccount").textContent = "+ Microsoft-account toevoegen";
+  }
 });
 
 $("switchProfile").addEventListener("click", () => {
-  const name = window.prompt(language === "nl" ? "Naam van lokaal Minecraft-profiel:" : "Name of local Minecraft profile:");
-  if (!name) return;
-  $("profileName").textContent = name;
-  $("profileName").dataset.custom = "true";
+  if (!accountsList.length) return;
+  const current = accountsList.findIndex(a => a.id === selectedAccountId);
+  selectedAccountId = accountsList[(current + 1) % accountsList.length].id;
+  renderAccount();
 });
+
+$("removeAccount").addEventListener("click", async () => {
+  if (!selectedAccountId) return;
+  accountsList = await window.launcherAPI.removeAccount(selectedAccountId);
+  selectedAccountId = accountsList[0]?.id || null;
+  renderAccount();
+});
+
+$("launchButton").addEventListener("click", async () => {
+  if (!selectedAccountId) {
+    $("launchStatus").textContent = language === "nl" ? "Log eerst in met een Microsoft-account." : "Sign in with a Microsoft account first.";
+    return;
+  }
+  $("launchButton").disabled = true;
+  $("launchStatus").textContent = language === "nl" ? "Minecraft wordt voorbereid..." : "Preparing Minecraft...";
+  try {
+    await window.launcherAPI.launchMinecraft({ era:selectedEra, accountId:selectedAccountId });
+    $("launchStatus").textContent = language === "nl" ? "Minecraft is gestart." : "Minecraft has started.";
+  } catch (error) {
+    $("launchStatus").textContent = error.message || "Minecraft launch failed.";
+  } finally {
+    $("launchButton").disabled = false;
+  }
+});
+
+window.launcherAPI.onUpdate(data => {
+  if (data.event === "checking") progress(10, i18n[language].checking);
+  if (data.event === "available") {
+    progress(25, `${i18n[language].available}: v${data.version}`);
+  }
+  if (data.event === "progress") progress(Math.max(25, data.percent), `${i18n[language].loading} ${data.percent}%`);
+  if (data.event === "current") progress(100, i18n[language].current);
+  if (data.event === "downloaded") {
+    progress(100, i18n[language].downloaded);
+    $("updateInstall").classList.remove("hidden");
+  }
+  if (data.event === "error") progress(100, i18n[language].done);
+});
+
+$("updateInstall").addEventListener("click", () => window.launcherAPI.installUpdate());
 
 setLanguage("nl");
 startup();
