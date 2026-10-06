@@ -13,28 +13,16 @@
       <div class="eyebrow">STEAMPUNK SMP</div>
       <h1 id="updateTitle">Launcher bijwerken</h1>
       <p id="updateText">De launcher controleert op updates...</p>
-      <div class="progress-shell">
-        <div id="progressBar" class="progress-bar"></div>
-      </div>
-      <div class="progress-meta">
-        <span id="progressLabel">Controleren</span>
-        <span id="progressPercent">0%</span>
-      </div>
+      <div class="progress-shell"><div id="progressBar" class="progress-bar"></div></div>
+      <div class="progress-meta"><span id="progressLabel">Controleren</span><span id="progressPercent">0%</span></div>
+      <button id="updateInstall" class="launch-button hidden">Update installeren</button>
     </div>
   </div>
 
   <main id="mainScreen" class="screen hidden">
     <header class="topbar">
-      <div>
-        <div class="eyebrow">STEAMPUNK SMP</div>
-        <h1>De Nieuwe Wereld</h1>
-      </div>
-      <div class="header-actions">
-        <select id="language" aria-label="Language">
-          <option value="nl">Nederlands</option>
-          <option value="en">English</option>
-        </select>
-      </div>
+      <div><div class="eyebrow">STEAMPUNK SMP</div><h1>De Nieuwe Wereld</h1></div>
+      <select id="language" aria-label="Language"><option value="nl">Nederlands</option><option value="en">English</option></select>
     </header>
 
     <section class="hero">
@@ -42,37 +30,21 @@
         <span class="badge">⚙ ERA SELECTOR</span>
         <h2 id="heroTitle">Kies jouw Era</h2>
         <p id="heroText">Elke Era heeft zijn eigen avontuur, modpack en configuratie.</p>
-
         <label for="eraChooser">Era</label>
         <select id="eraChooser" class="era-select">
           <option value="steamy-times">Steamy Times</option>
           <option value="a-new-era">A New Era</option>
         </select>
-
         <div class="era-info">
-          <div>
-            <span class="info-label">Modpack</span>
-            <strong id="modpackVersion">Nog niet geïnstalleerd</strong>
-          </div>
-          <div>
-            <span class="info-label">Minecraft</span>
-            <strong id="minecraftVersion">Wordt later ingesteld</strong>
-          </div>
+          <div><span class="info-label">Modpack</span><strong id="modpackVersion">Nog niet geïnstalleerd</strong></div>
+          <div><span class="info-label">Minecraft</span><strong id="minecraftVersion">Wordt later ingesteld</strong></div>
         </div>
-
         <button id="launchButton" class="launch-button">▶ Minecraft starten</button>
         <p id="launchStatus" class="status-message"></p>
       </div>
-
       <div class="hero-art" aria-hidden="true">
-        <div class="sun"></div>
-        <div class="clock">
-          <div class="clock-face"></div>
-          <div class="hand hand-one"></div>
-          <div class="hand hand-two"></div>
-        </div>
-        <div class="pipe pipe-one"></div>
-        <div class="pipe pipe-two"></div>
+        <div class="sun"></div><div class="clock"><div class="clock-face"></div><div class="hand hand-one"></div><div class="hand hand-two"></div></div>
+        <div class="pipe pipe-one"></div><div class="pipe pipe-two"></div>
       </div>
     </section>
 
@@ -80,38 +52,32 @@
       <article class="panel">
         <div class="panel-heading"><span>👤</span><h3>Profiel</h3></div>
         <div class="profile-row">
-          <div class="avatar">P</div>
-          <div>
-            <strong id="profileName">Geen account geselecteerd</strong>
-            <span>Lokale Minecraft-profielwisselaar</span>
-          </div>
+          <div id="profileAvatar" class="avatar">?</div>
+          <div><strong id="profileName">Geen account geselecteerd</strong><span>Lokale Minecraft-profielen</span></div>
           <button id="switchProfile">Wisselen</button>
         </div>
-        <small>Geen accountpool: accounts blijven op dit apparaat gekoppeld aan jouw eigen launcherprofielen.</small>
+        <div class="account-actions">
+          <button id="loginAccount">+ Microsoft-account toevoegen</button>
+          <button id="removeAccount">Account verwijderen</button>
+        </div>
+        <small>Geen accountpool. Je Microsoft-accounts worden lokaal op dit apparaat opgeslagen.</small>
       </article>
 
       <article class="panel">
         <div class="panel-heading"><span>🟢</span><h3>Serverstatus</h3></div>
-        <div class="server-status">
-          <div id="serverDot" class="server-dot"></div>
-          <div>
-            <strong id="serverState">Online controleren...</strong>
-            <span id="serverPlayers">Minecraft server</span>
-          </div>
-        </div>
+        <div class="server-status"><div id="serverDot" class="server-dot"></div><div><strong id="serverState">Controleren...</strong><span id="serverPlayers">Minecraft server</span></div></div>
       </article>
 
       <article class="panel">
         <div class="panel-heading"><span>📡</span><h3>Social</h3></div>
         <div class="social-grid">
-          <button data-url="https://discord.com/" class="social">Discord</button>
-          <button data-url="https://instagram.com/" class="social">Instagram</button>
-          <button data-url="https://wa.me/" class="social">WhatsApp</button>
+          <button id="discord" class="social">Discord</button>
+          <button id="instagram" class="social">Instagram</button>
+          <button id="whatsapp" class="social">WhatsApp</button>
         </div>
       </article>
     </section>
   </main>
-
   <script src="renderer.js"></script>
 </body>
 </html>
