@@ -442,13 +442,27 @@ app.whenReady().then(() => {
     launcher.on("data", line => sendUpdate("minecraft-log", { line: String(line) }));
     launcher.on("error", error => sendUpdate("minecraft-error", { message: String(error) }));
 
+    const settings = readSettings();
     const options = {
       path: gamePath,
       authenticator: account.auth,
       version: manifest.minecraftVersion,
-      memory: readSettings().memory || readConfig().memory || { min: "2G", max: "6G" },
+      memory: settings.memory || readConfig().memory || { min: "2G", max: "6G" },
       detached: false,
-      instance: payload.era
+      instance: payload.era,
+      downloadFileMultiple: 8,
+      verify: true,
+      screen: {
+        width: settings.resolution?.includes("x") ? Number(settings.resolution.split("x")[0]) || null : null,
+        height: settings.resolution?.includes("x") ? Number(settings.resolution.split("x")[1]) || null : null,
+        fullscreen: !!settings.fullscreen
+      },
+      java: {
+        path: settings.javaPath || null,
+        version: settings.javaVersion || null,
+        type: "jre"
+      },
+      JVM_ARGS: settings.javaArgs ? settings.javaArgs.split(/\\s+/).filter(Boolean) : []
     };
 
     if (manifest.loader) {
