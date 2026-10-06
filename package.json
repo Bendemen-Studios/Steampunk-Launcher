@@ -1,8 +1,32 @@
 {
   "name":"steampunk-launcher",
   "version":"0.1.0",
+  "description":"Steampunk SMP Minecraft Launcher",
   "private":true,
   "main":"src/main.js",
-  "scripts":{"start":"electron .","dev":"electron .","build":"echo "Build pipeline placeholder""},
-  "dependencies":{"electron":"^39.0.0"}
+  "scripts":{
+    "start":"electron .",
+    "dev":"electron .",
+    "dist":"electron-builder --publish never"
+  },
+  "dependencies":{
+    "adm-zip":"^0.5.16",
+    "electron-updater":"^6.8.10",
+    "mc-server-util":"^1.0.0",
+    "minecraft-java-core":"^4.2.9"
+  },
+  "devDependencies":{
+    "electron":"^39.0.0",
+    "electron-builder":"^26.17.0"
+  },
+  "build":{
+    "appId":"com.bendemenstudios.steampunklauncher",
+    "productName":"Steampunk SMP Launcher",
+    "asar":true,
+    "publish":[{"provider":"github","owner":"Bendemen-Studios","repo":"Steampunk-Launcher"}],
+    "win":{"target":["nsis"]},
+    "mac":{"target":["dmg","zip"]},
+    "linux":{"target":["AppImage","deb"]},
+    "files":["src/**/*","content/**/*","config/**/*","package.json"]
+  }
 }
