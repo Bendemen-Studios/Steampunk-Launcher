@@ -116,6 +116,96 @@ function sha256File(file) {
   });
 }
 
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  return (bytes / Math.pow(1024, index)).toFixed(index ? 1 : 0) + " " + units[index];
+}
+
+function getInstalledVersion(era) {
+  const file = path.join(getEraGamePath(era), ".installed-version");
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : "";
+}
+
+function getBackupVersions(era) {
+  const dir = path.join(getEraGamePath(era), ".backups");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter(name => fs.statSync(path.join(dir, name)).isDirectory()).sort().reverse();
+}
+
+function getModpackUpdateInfo(era, manifest) {
+  const version = manifest.latestVersion || manifest.version || "";
+  const installedVersion = getInstalledVersion(era);
+  const info = manifest.versions?.[version] || {};
+  const archive = path.join(getEraGamePath(era), ".downloads", version + ".zip");
+  let archiveSize = fs.existsSync(archive) ? fs.statSync(archive).size : 0;
+  const files = Array.isArray(info.files) ? info.files : [];
+  const previousFiles = Array.isArray(manifest.versions?.[installedVersion]?.files)
+    ? manifest.versions[installedVersion].files : [];
+  const previousMap = new Map(previousFiles.map(file => [file.path, file.sha256 || file.hash || ""]));
+  const changedFiles = files.filter(file => previousMap.get(file.path) !== (file.sha256 || file.hash || ""));
+  const addedFiles = changedFiles.filter(file => !previousMap.has(file.path)).length;
+  const changedCount = changedFiles.length - addedFiles;
+  const currentFilePaths = new Set(files.map(file => file.path));
+  const deletedFiles = previousFiles.filter(file => !currentFilePaths.has(file.path)).length;
+  const remoteSize = Number(info.size || 0);
+  return {
+    era,
+    installedVersion,
+    latestVersion: version,
+    updateAvailable: !!version && installedVersion !== version,
+    archiveReady: fs.existsSync(archive),
+    archiveSize,
+    remoteSize,
+    downloadSize: remoteSize || archiveSize,
+    downloadSizeLabel: formatBytes(remoteSize || archiveSize),
+    changedFiles: changedFiles.length,
+    addedFiles,
+    changedCount,
+    deletedFiles,
+    fileCount: files.length,
+    backups: getBackupVersions(era),
+    sha256: info.sha256 || null
+  };
+}
+
+async function getRepairStatus(era) {
+  const manifest = await resolveEra(era);
+  const version = manifest.latestVersion || manifest.version || "";
+  const info = manifest.versions?.[version] || {};
+  const dir = getEraGamePath(era);
+  const archive = path.join(dir, ".downloads", version + ".zip");
+  let archiveValid = false;
+  if (fs.existsSync(archive)) {
+    archiveValid = info.sha256 ? (await sha256File(archive)).toLowerCase() === String(info.sha256).toLowerCase() : true;
+  }
+  const stat = fs.statfsSync(dir);
+  const freeBytes = stat.bavail * stat.bsize;
+  return {
+    ...getModpackUpdateInfo(era, manifest),
+    archiveValid,
+    freeDiskBytes: freeBytes,
+    freeDiskLabel: formatBytes(freeBytes),
+    repairNeeded: !getInstalledVersion(era) || (fs.existsSync(archive) && !archiveValid)
+  };
+}
+
+async function downloadWithRetry(url, destination, expectedSha256, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await downloadFile(url, destination, expectedSha256);
+      return;
+    } catch (error) {
+      lastError = error;
+      sendUpdate("modpack-retry", { attempt, attempts, message: error.message });
+      if (attempt < attempts) await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
+  }
+  throw lastError || new Error("Modpack download failed.");
+}
+
 function downloadFile(url, destination, expectedSha256) {
   return new Promise((resolve, reject) => {
     const temp = destination + ".download";
@@ -253,7 +343,7 @@ async function syncModpack(era, manifest) {
     }
   }
   try {
-    await downloadFile(versionInfo.url, archive, versionInfo.sha256 || null);
+    await downloadWithRetry(versionInfo.url, archive, versionInfo.sha256 || null);
     await installModpackArchive(era, archive, version);
   } catch (error) {
     if (backupDir && fs.existsSync(backupDir)) {
@@ -392,6 +482,11 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("get-era-manifest", async (_, era) => resolveEra(era));
+  ipcMain.handle("get-modpack-update-info", async (_, era) => {
+    const manifest = await resolveEra(era);
+    return getModpackUpdateInfo(era, manifest);
+  });
+  ipcMain.handle("get-repair-status", async (_, era) => getRepairStatus(era));
   ipcMain.handle("get-era-visuals", (_, era) => {
     if (!SUPPORTED_ERAS.includes(era)) throw new Error("Invalid Era.");
     const file = path.join(ERAS_DIR, era, "visuals.json");
@@ -409,6 +504,8 @@ app.whenReady().then(() => {
   ipcMain.handle("list-accounts", () => accounts.listAccounts());
   ipcMain.handle("login-account", async () => accounts.login());
   ipcMain.handle("remove-account", async (_, id) => accounts.removeAccount(id));
+  ipcMain.handle("get-era-account", (_, era) => accounts.getEraAccount(era));
+  ipcMain.handle("set-era-account", (_, era, id) => accounts.setEraAccount(era, id));
 
   ipcMain.handle("server-status", async () => {
     const { host, port } = readConfig().server || {};
@@ -429,8 +526,11 @@ app.whenReady().then(() => {
 
   ipcMain.handle("launch-minecraft", async (_, payload) => {
     if (!SUPPORTED_ERAS.includes(payload.era)) throw new Error("Invalid Era.");
-    const account = await accounts.getAccount(payload.accountId);
+    const rememberedAccountId = accounts.getEraAccount(payload.era);
+    const accountId = payload.accountId || rememberedAccountId;
+    const account = await accounts.getAccount(accountId);
     await accounts.saveRefreshed(account);
+    accounts.setEraAccount(payload.era, account.id);
 
     const manifest = await resolveEra(payload.era);
     if (!manifest.minecraftVersion) throw new Error("Deze Era heeft nog geen Minecraft-versie ingesteld.");
