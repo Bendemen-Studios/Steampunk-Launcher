@@ -1,6 +1,8 @@
 {
   "id": "a-new-era",
+  "status": "coming-soon",
+  "title": "A New Era",
   "background": "a-new-era-background.svg",
   "logo": "a-new-era-logo.svg",
-  "accent": "#76a9b8"
+  "accent": "#77736c"
 }
