@@ -102,3 +102,24 @@ The CI workflow runs dependency installation and JavaScript syntax checks.
 ## Current status
 
 Core launcher implementation is in place. The actual Steamy Times and A New Era modpack manifests still need their final Minecraft versions/loaders and modpack files.
+
+
+## Distribution
+
+The release pipeline builds native installers for:
+
+- Windows: NSIS installer (.exe) for x64 and ARM64
+- macOS: DMG and ZIP targets for Intel and Apple Silicon
+- Linux: AppImage, DEB and RPM packages for x64 and ARM64
+
+Releases are published to GitHub Releases. The installed launcher checks GitHub Releases at startup and shows download progress on the update screen. AppImage is the primary Linux self-update format; DEB/RPM are provided as native installation packages.
+
+### Signing
+
+For production distribution, add the platform signing credentials as GitHub Actions secrets. macOS requires code signing for reliable auto-update behavior. Windows signing is strongly recommended so SmartScreen/antivirus reputation can build over time.
+
+Never commit certificates, private keys, Microsoft client secrets or signing passwords to the repository.
+
+### Mod files in the repository
+
+The repository contains the complete content tree, including the Era mods, config and resourcepacks directories. Actual binary modpacks, mod JARs and resourcepacks should be added when available. GitHub Releases support release assets up to 2 GiB per file; for very large development assets, Git LFS or release assets are preferable to bloating normal Git history.
