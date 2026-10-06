@@ -1,0 +1,51 @@
+name: Release Build Check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            targets: nsis
+          - os: macos-latest
+            platform: mac
+            targets: dmg zip
+          - os: ubuntu-latest
+            platform: linux
+            targets: AppImage deb rpm
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Syntax validation
+        shell: bash
+        run: |
+          node --check src/main.js
+          node --check src/preload.js
+          node --check src/account-store.js
+          node --check src/renderer/renderer.js
+
+      - name: Build release targets
+        run: npx electron-builder --${{ matrix.platform }} ${{ matrix.targets }} --publish never
