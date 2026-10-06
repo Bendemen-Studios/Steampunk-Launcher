@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, shell, safeStorage } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
 const fs = require("fs");
+const https = require("https");
+const crypto = require("crypto");
 const AdmZip = require("adm-zip");
 const { getMinecraftServerStatus } = require("mc-server-util");
 const { Launch } = require("minecraft-java-core");
@@ -11,6 +13,10 @@ const ROOT = path.join(__dirname, "..");
 const CONTENT_DIR = path.join(ROOT, "content");
 const ERAS_DIR = path.join(CONTENT_DIR, "eras");
 const CONFIG_FILE = path.join(ROOT, "config", "launcher.json");
+const SUPPORTED_ERAS = ["steamy-times", "a-new-era"];
+const MODPACK_FOLDERS = ["mods", "config", "resourcepacks", "datapacks", "essential", "fancymenu_data", "shaderpacks"];
+const REMOTE_MANIFEST_MAX_BYTES = 1024 * 1024;
+const DOWNLOAD_CHUNK_BYTES = 1024 * 1024;
 let mainWindow;
 let updaterReady = false;
 
@@ -20,10 +26,8 @@ function readConfig() {
 }
 
 function ensureContentLayout() {
-  for (const era of ["steamy-times", "a-new-era"]) {
-    for (const folder of ["mods", "config", "resourcepacks"]) {
-      fs.mkdirSync(path.join(ERAS_DIR, era, folder), { recursive: true });
-    }
+  for (const era of SUPPORTED_ERAS) {
+    for (const folder of MODPACK_FOLDERS) fs.mkdirSync(path.join(ERAS_DIR, era, folder), { recursive: true });
     const manifest = path.join(ERAS_DIR, era, "modpack.json");
     if (!fs.existsSync(manifest)) {
       fs.writeFileSync(manifest, JSON.stringify({
@@ -32,7 +36,8 @@ function ensureContentLayout() {
         minecraftVersion: "",
         loader: "",
         loaderBuild: "latest",
-        version: "0.0.0"
+        version: "0.0.0",
+        remoteManifestUrl: ""
       }, null, 2));
     }
   }
@@ -61,32 +66,180 @@ function configureUpdater() {
   autoUpdater.checkForUpdates().catch(error => sendUpdate("error", { message: error.message }));
 }
 
-async function syncModpack(era) {
+function httpsGet(url, maxBytes = 0) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, { headers: { "User-Agent": "Steampunk-SMP-Launcher" } }, response => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        response.resume();
+        return resolve(httpsGet(new URL(response.headers.location, url).toString(), maxBytes));
+      }
+      if (response.statusCode !== 200) {
+        response.resume();
+        return reject(new Error(`Download failed (HTTP ${response.statusCode}).`));
+      }
+      const chunks = [];
+      let total = 0;
+      response.on("data", chunk => {
+        total += chunk.length;
+        if (maxBytes && total > maxBytes) {
+          request.destroy(new Error("Remote manifest is too large."));
+          return;
+        }
+        chunks.push(chunk);
+      });
+      response.on("end", () => resolve(Buffer.concat(chunks)));
+      response.on("error", reject);
+    });
+    request.on("error", reject);
+    request.setTimeout(30000, () => request.destroy(new Error("Network timeout.")));
+  });
+}
+
+async function fetchJson(url) {
+  const buffer = await httpsGet(url, REMOTE_MANIFEST_MAX_BYTES);
+  try { return JSON.parse(buffer.toString("utf8")); }
+  catch { throw new Error("Remote Era manifest is invalid JSON."); }
+}
+
+function sha256File(file) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("sha256");
+    const stream = fs.createReadStream(file);
+    stream.on("data", chunk => hash.update(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+function downloadFile(url, destination, expectedSha256) {
+  return new Promise((resolve, reject) => {
+    const temp = destination + ".download";
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    const start = fs.existsSync(temp) ? fs.statSync(temp).size : 0;
+    const headers = { "User-Agent": "Steampunk-SMP-Launcher" };
+    if (start > 0) headers.Range = `bytes=${start}-`;
+
+    const request = https.get(url, { headers }, response => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+        response.resume();
+        return resolve(downloadFile(new URL(response.headers.location, url).toString(), destination, expectedSha256));
+      }
+
+      const append = start > 0 && response.statusCode === 206;
+      if (response.statusCode !== 200 && !append) {
+        response.resume();
+        return reject(new Error(`Modpack download failed (HTTP ${response.statusCode}).`));
+      }
+
+      const total = Number(response.headers["content-length"] || 0) + (append ? start : 0);
+      const stream = fs.createWriteStream(temp, { flags: append ? "a" : "w" });
+      let downloaded = append ? start : 0;
+
+      response.on("data", chunk => {
+        downloaded += chunk.length;
+        const percent = total ? Math.min(99, Math.round(downloaded / total * 100)) : 0;
+        sendUpdate("modpack-progress", { percent, downloaded, total });
+      });
+      response.pipe(stream);
+      stream.on("finish", async () => {
+        stream.close();
+        try {
+          if (expectedSha256) {
+            const actual = await sha256File(temp);
+            if (actual.toLowerCase() !== expectedSha256.toLowerCase()) {
+              fs.rmSync(temp, { force: true });
+              throw new Error("Modpack SHA-256 controle mislukt.");
+            }
+          }
+          fs.renameSync(temp, destination);
+          sendUpdate("modpack-progress", { percent: 100, downloaded: total, total });
+          resolve();
+        } catch (error) { reject(error); }
+      });
+      stream.on("error", reject);
+    });
+    request.on("error", reject);
+    request.setTimeout(60000, () => request.destroy(new Error("Modpack download timeout.")));
+  });
+}
+
+function safeExtract(zipPath, destination) {
+  const zip = new AdmZip(zipPath);
+  const root = path.resolve(destination) + path.sep;
+  for (const entry of zip.getEntries()) {
+    if (entry.isDirectory) continue;
+    const target = path.resolve(destination, entry.entryName);
+    if (!target.startsWith(root)) throw new Error("Onveilige ZIP-inhoud geblokkeerd.");
+  }
+  zip.extractAllTo(destination, true);
+}
+
+async function installModpackArchive(era, archivePath, version) {
   const eraDir = path.join(ERAS_DIR, era);
-  const zip = path.join(eraDir, "modpack.zip");
-  if (!fs.existsSync(zip)) return;
-
-  const marker = path.join(eraDir, ".modpack-installed");
-  const stat = fs.statSync(zip);
-  const fingerprint = stat.size + ":" + stat.mtimeMs;
-  if (fs.existsSync(marker) && fs.readFileSync(marker, "utf8") === fingerprint) return;
-
-  const extractDir = path.join(eraDir, ".extracted");
+  const extractDir = path.join(eraDir, ".update-extracted");
   fs.rmSync(extractDir, { recursive: true, force: true });
   fs.mkdirSync(extractDir, { recursive: true });
-  new AdmZip(zip).extractAllTo(extractDir, true);
 
-  const candidates = fs.existsSync(path.join(extractDir, "mods")) ? extractDir :
-    (fs.existsSync(path.join(extractDir, "overrides")) ? path.join(extractDir, "overrides") : extractDir);
+  try {
+    safeExtract(archivePath, extractDir);
+    const candidates = fs.existsSync(path.join(extractDir, "mods")) ? extractDir :
+      (fs.existsSync(path.join(extractDir, "overrides")) ? path.join(extractDir, "overrides") : extractDir);
 
-  for (const folder of ["mods", "config", "resourcepacks"]) {
-    const source = path.join(candidates, folder);
-    const target = path.join(eraDir, folder);
-    if (!fs.existsSync(source)) continue;
-    fs.cpSync(source, target, { recursive: true, force: true });
+    for (const folder of MODPACK_FOLDERS) {
+      const source = path.join(candidates, folder);
+      const target = path.join(eraDir, folder);
+      if (fs.existsSync(source)) {
+        fs.mkdirSync(target, { recursive: true });
+        fs.cpSync(source, target, { recursive: true, force: true });
+      }
+    }
+
+    fs.writeFileSync(path.join(eraDir, ".installed-version"), version, "utf8");
+  } finally {
+    fs.rmSync(extractDir, { recursive: true, force: true });
   }
-  fs.writeFileSync(marker, fingerprint);
-  fs.rmSync(extractDir, { recursive: true, force: true });
+}
+
+function readLocalManifest(era) {
+  const file = path.join(ERAS_DIR, era, "modpack.json");
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+async function resolveEra(era) {
+  if (!SUPPORTED_ERAS.includes(era)) throw new Error("Invalid Era.");
+  const local = readLocalManifest(era);
+  if (!local.remoteManifestUrl) return local;
+  try {
+    const remote = await fetchJson(local.remoteManifestUrl);
+    if (!remote || remote.id !== era || !remote.latestVersion || !remote.versions?.[remote.latestVersion]) {
+      throw new Error("Remote Era manifest is incomplete.");
+    }
+    return { ...local, ...remote };
+  } catch (error) {
+    if (local.version && local.version !== "0.0.0") {
+      sendUpdate("manifest-offline", { message: error.message });
+      return local;
+    }
+    throw error;
+  }
+}
+
+async function syncModpack(era, manifest) {
+  const version = manifest.latestVersion || manifest.version;
+  const versionInfo = manifest.versions?.[version];
+  if (!version || !versionInfo?.url) return;
+
+  const eraDir = path.join(ERAS_DIR, era);
+  const stateFile = path.join(eraDir, ".installed-version");
+  const installedVersion = fs.existsSync(stateFile) ? fs.readFileSync(stateFile, "utf8").trim() : "";
+  const archive = path.join(eraDir, ".downloads", `${version}.zip`);
+
+  if (installedVersion === version && fs.existsSync(archive)) return;
+
+  sendUpdate("modpack-start", { version, installedVersion });
+  await downloadFile(versionInfo.url, archive, versionInfo.sha256 || null);
+  await installModpackArchive(era, archive, version);
+  sendUpdate("modpack-ready", { version });
 }
 
 function createWindow() {
@@ -128,11 +281,7 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle("get-era-manifest", async (_, era) => {
-    if (!["steamy-times", "a-new-era"].includes(era)) throw new Error("Invalid Era.");
-    const file = path.join(ERAS_DIR, era, "modpack.json");
-    return JSON.parse(fs.readFileSync(file, "utf8"));
-  });
+  ipcMain.handle("get-era-manifest", async (_, era) => resolveEra(era));
 
   ipcMain.handle("list-accounts", () => accounts.listAccounts());
   ipcMain.handle("login-account", async () => accounts.login());
@@ -156,17 +305,17 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("launch-minecraft", async (_, payload) => {
-    if (!["steamy-times", "a-new-era"].includes(payload.era)) throw new Error("Invalid Era.");
+    if (!SUPPORTED_ERAS.includes(payload.era)) throw new Error("Invalid Era.");
     const account = await accounts.getAccount(payload.accountId);
     await accounts.saveRefreshed(account);
 
-    const manifestPath = path.join(ERAS_DIR, payload.era, "modpack.json");
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const manifest = await resolveEra(payload.era);
     if (!manifest.minecraftVersion) throw new Error("Deze Era heeft nog geen Minecraft-versie ingesteld.");
+    if (manifest.loader && !manifest.loaderBuild) throw new Error("Deze Era heeft geen loader build ingesteld.");
 
-    await syncModpack(payload.era);
+    await syncModpack(payload.era, manifest);
 
-    const gamePath = path.join(app.getPath("userData"), "minecraft", payload.era);
+    const gamePath = path.join(app.getPath("userData"), "minecraft", "instances", payload.era);
     fs.mkdirSync(gamePath, { recursive: true });
 
     const launcher = new Launch();
@@ -181,7 +330,8 @@ app.whenReady().then(() => {
       authenticator: account.auth,
       version: manifest.minecraftVersion,
       memory: readConfig().memory || { min: "2G", max: "6G" },
-      detached: false
+      detached: false,
+      instance: payload.era
     };
 
     if (manifest.loader) {
@@ -193,7 +343,7 @@ app.whenReady().then(() => {
     }
 
     await launcher.launch(options);
-    return { ok: true };
+    return { ok: true, version: manifest.latestVersion || manifest.version };
   });
 
   ipcMain.handle("install-update", () => {
