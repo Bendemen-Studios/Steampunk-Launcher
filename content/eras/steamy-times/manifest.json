@@ -1,0 +1,13 @@
+{
+  "id": "steamy-times",
+  "name": "Steamy Times",
+  "latestVersion": "v1.0",
+  "minecraftVersion": "1.21.1",
+  "loader": "neoforge",
+  "loaderBuild": "21.1.250",
+  "versions": {
+    "v1.0": {
+      "url": "https://files.steampunksmp.com/steampunk/steamy-times/v1.0/ucc.zip"
+    }
+  }
+}
