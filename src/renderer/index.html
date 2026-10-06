@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Steampunk SMP Launcher</title>
+  <link rel="icon" type="image/svg+xml" href="../../content/launcher-logo.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -19,15 +20,20 @@
     </div>
   </div>
 
+  <div id="eraTransition" class="era-transition hidden" aria-hidden="true">
+    <div class="era-transition-logo-wrap"><img id="eraTransitionLogo" alt=""></div>
+  </div>
+
   <main id="mainScreen" class="screen hidden">
     <header class="topbar">
-      <div><div class="eyebrow">STEAMPUNK SMP</div><h1>De Nieuwe Wereld</h1></div>
+      <div class="brand"><img class="brand-logo" src="../../content/launcher-logo.svg" alt="Steampunk SMP"><div><div class="eyebrow">STEAMPUNK SMP</div><h1>De Nieuwe Wereld</h1></div></div>
       <select id="language" aria-label="Language"><option value="nl">Nederlands</option><option value="en">English</option></select>
     </header>
 
-    <section class="hero">
-      <div class="hero-copy">
+    <section class="hero era-hero">
+      <div class="hero-copy era-copy">
         <span class="badge">⚙ ERA SELECTOR</span>
+        <div class="era-brand"><img id="eraLogo" src="" alt=""></div>
         <h2 id="heroTitle">Kies jouw Era</h2>
         <p id="heroText">Elke Era heeft zijn eigen avontuur, modpack en configuratie.</p>
         <label for="eraChooser">Era</label>
