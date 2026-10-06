@@ -148,3 +148,95 @@ body[data-era-status="coming-soon"] .hero-art{opacity:.38;filter:grayscale(1)}
 body[data-era="steamy-times"]::before{filter:grayscale(.35) saturate(.72) contrast(1.04)}
 body[data-era="a-new-era"]::before{filter:grayscale(.2) contrast(1.08)}
 @keyframes coalSweep{0%,25%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
+
+
+/* Era-specific palettes + animated theme transition */
+:root{
+  --era-bg-color:#111313;
+  --era-surface:#101111;
+  --era-surface-2:#1a1c1c;
+  --era-text:#d1cec6;
+  --era-muted:#8c8982;
+  --era-border:#555754;
+  --era-accent:#8f8170;
+  --transition-bg:#080909;
+}
+body{
+  background:var(--era-bg-color);
+  color:var(--era-text);
+  transition:background-color .72s ease,color .72s ease;
+}
+body::before{
+  transition:opacity .55s ease,filter .72s ease;
+}
+.topbar,.panel,.era-info>div,.coming-soon-message,.affiliate-banner{
+  transition:background-color .72s ease,border-color .72s ease,color .72s ease;
+}
+.topbar h1,.hero p,.hero label,.info-label,.eyebrow,.badge,.era-info strong,
+.panel,.panel-heading h3,.tool-text,.profile-row span,.server-status span{
+  transition:color .72s ease;
+}
+.topbar,.panel,.era-info>div{
+  background-color:color-mix(in srgb,var(--era-surface) 88%,transparent);
+  border-color:color-mix(in srgb,var(--era-border) 58%,transparent);
+}
+.topbar select,.era-select,.settings-grid input{
+  background:var(--era-surface-2);
+  color:var(--era-text);
+  border-color:var(--era-border);
+  transition:background-color .72s ease,border-color .72s ease,color .72s ease;
+}
+.hero p,.tool-text{color:var(--era-muted)}
+.eyebrow,.hero label,.info-label{color:var(--era-accent)}
+.badge{border-color:color-mix(in srgb,var(--era-accent) 75%,var(--era-border));color:var(--era-accent)}
+.launch-button{
+  border-color:var(--era-accent);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--era-accent) 58%,#111),color-mix(in srgb,var(--era-accent) 22%,#111));
+  color:#f5f1e9;
+  transition:background .72s ease,border-color .72s ease,color .72s ease,box-shadow .72s ease;
+}
+.hero-art{
+  background:linear-gradient(145deg,color-mix(in srgb,var(--era-accent) 17%,var(--era-surface)),var(--era-surface));
+  border-color:color-mix(in srgb,var(--era-accent) 45%,transparent);
+  transition:background .72s ease,border-color .72s ease;
+}
+.avatar{background:var(--era-accent)}
+.coming-soon-message{
+  background:color-mix(in srgb,var(--era-surface) 90%,transparent);
+  border-color:color-mix(in srgb,var(--era-accent) 48%,transparent);
+}
+.coming-soon-gear{color:var(--era-accent)}
+.affiliate-banner{background:color-mix(in srgb,var(--era-surface) 96%,transparent);border-color:color-mix(in srgb,var(--era-accent) 65%,transparent)}
+.affiliate-button{background:color-mix(in srgb,var(--era-accent) 40%,#111);border-color:var(--era-accent)}
+.era-transition{
+  background:var(--transition-bg);
+  transition:background-color .58s cubic-bezier(.22,1,.36,1);
+}
+body[data-era="steamy-times"]{
+  --era-bg-color:#080909;
+  --era-surface:#101111;
+  --era-surface-2:#1a1c1c;
+  --era-text:#d1cec6;
+  --era-muted:#8c8982;
+  --era-border:#555754;
+  --era-accent:#8f8170;
+}
+body[data-era="a-new-era"]{
+  --era-bg-color:#17100a;
+  --era-surface:#24170f;
+  --era-surface-2:#332015;
+  --era-text:#f1dfc8;
+  --era-muted:#b99773;
+  --era-border:#795332;
+  --era-accent:#c18a51;
+}
+body[data-era="steamy-times"] .topbar{background:rgba(8,9,9,.72)}
+body[data-era="a-new-era"] .topbar{background:rgba(23,16,10,.72)}
+body[data-era="steamy-times"] .hero-art{filter:grayscale(.35) saturate(.72) contrast(1.04)}
+body[data-era="a-new-era"] .hero-art{filter:none}
+body[data-era="a-new-era"] .sun{border-color:#a96f3d;box-shadow:0 0 0 10px #55351f,0 0 70px #a96f3d66}
+body[data-era="a-new-era"] .clock{background:#b47a43;box-shadow:12px 18px 0 #3b2517}
+body[data-era="a-new-era"] .pipe{background:#6b472b;border-color:#c18a51}
+body[data-era="steamy-times"] .sun{border-color:#686964;box-shadow:0 0 0 10px #303230,0 0 70px #77736c44}
+body[data-era="steamy-times"] .clock{background:#696a66;box-shadow:12px 18px 0 #191b1b}
+body[data-era="steamy-times"] .pipe{background:#353737;border-color:#77736c}
